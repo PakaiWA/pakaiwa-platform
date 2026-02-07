@@ -13,10 +13,12 @@
  * https://github.com/PakaiWA/PakaiWA/tree/main/~/work/PakaiWA/pp/db/postgres
  */
 
+// Package postgres provides PostgreSQL database connection pooling utilities.
 package postgres
 
 import "time"
 
+// Config holds the configuration for PostgreSQL connection pooling.
 type Config struct {
 	DSN               string
 	MinConns          int32

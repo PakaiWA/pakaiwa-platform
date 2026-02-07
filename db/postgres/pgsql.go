@@ -17,7 +17,6 @@ package postgres
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -26,11 +25,9 @@ import (
 	"github.com/PakaiWA/pakaiwa-platform/errors"
 )
 
-var (
-	pool   *pgxpool.Pool
-	onceDB sync.Once
-)
-
+// NewDatabase creates and configures a new PostgreSQL connection pool.
+// It initializes the pool with the provided configuration and verifies connectivity.
+// The function will panic if the DSN is invalid or if pool creation fails.
 func NewDatabase(ctx context.Context, log *logrus.Logger, cfg Config) *pgxpool.Pool {
 	log.Info("Connecting to database...")
 

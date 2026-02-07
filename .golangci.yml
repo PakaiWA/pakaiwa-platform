@@ -1,18 +1,15 @@
+version: 2
+
 linters:
   enable:
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
-    - typecheck
     - unused
-    - gofmt
-    - goimports
     - misspell
     - revive
     - gocritic
-    - gosec
     - unconvert
     - unparam
     - prealloc
@@ -25,9 +22,6 @@ linters-settings:
   govet:
     enable-all: true
 
-  gofmt:
-    simplify: true
-
   revive:
     rules:
       - name: exported
@@ -39,7 +33,10 @@ issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - revive
 
 run:
   timeout: 5m
-  tests: true

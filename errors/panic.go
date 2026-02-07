@@ -13,26 +13,14 @@
  * https://github.com/PakaiWA/PakaiWA/tree/main/~/work/PakaiWA/pp/errors
  */
 
+// Package errors provides utility functions for panic-based error handling.
 package errors
 
-import "fmt"
-
+// Must returns the value v if err is nil, otherwise it panics with err.
+// This is useful for handling errors in initialization code where recovery is not possible.
 func Must[T any](v T, err error) T {
 	if err != nil {
 		panic(err)
 	}
 	return v
-}
-
-func Check(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
-func PanicIfError(err error) {
-	if err != nil {
-		fmt.Println(err)
-		panic(err)
-	}
 }
