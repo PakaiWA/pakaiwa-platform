@@ -18,33 +18,26 @@ package kafka
 import (
 	"context"
 	"encoding/json"
-	"strings"
 
+	"github.com/PakaiWA/pakaiwa-platform/errors"
 	"github.com/PakaiWA/pakaiwa-platform/messaging/event"
 	"github.com/PakaiWA/pakaiwa-platform/messaging/producer"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
 )
 
-func NewKafkaProducer(cfg ProducerConfig) (*kafka.Producer, error) {
-	m := &kafka.ConfigMap{
-		"bootstrap.servers": strings.Join(cfg.Brokers, ","),
-	}
-
-	if cfg.ClientID != "" {
-		_ = m.SetKey("client.id", cfg.ClientID)
-	}
-
-	for k, v := range cfg.Options {
-		_ = m.SetKey(k, v)
-	}
-
-	return kafka.NewProducer(m)
-}
-
 type KafkaProducer struct {
 	p   *kafka.Producer
 	log *logrus.Logger
+}
+
+func NewKafkaProducer(cfg *kafka.ConfigMap, log *logrus.Logger) producer.MessageProducer {
+	p := errors.Must(kafka.NewProducer(cfg))
+
+	return &KafkaProducer{
+		p:   p,
+		log: log,
+	}
 }
 
 func (k *KafkaProducer) Send(_ context.Context, topic string, key []byte, clientJID []byte, value []byte) error {
