@@ -1,4 +1,4 @@
-# Testing Documentation
+≤# Testing Documentation
 
 ## Overview
 
@@ -6,14 +6,19 @@ This document describes the testing strategy and implementation for the PakaiWA 
 
 ## Test Coverage
 
-Current test coverage: **91.3%**
+Current test coverage: **21.1%** (overall)
 
 ### Package Coverage Breakdown
 
 | Package | Coverage | Status |
 |---------|----------|--------|
 | `errors` | 100.0% | ✅ Excellent |
-| `db/postgres` | 86.7% | ✅ Good |
+| `security/password` | 100.0% | ✅ Excellent |
+| `runtime/shutdown` | 100.0% | ✅ Excellent |
+| `http/client` | 91.3% | ✅ Excellent |
+| `cache/redis` | 80.0% | ✅ Good |
+| `validation` | 34.5% | ⚠️ Needs Improvement |
+| `db/postgres` | 19.0% | ⚠️ Needs Improvement |
 
 ## Test Structure
 
@@ -27,10 +32,75 @@ Tests for error handling utilities:
 - **TestMust_Panic**: Verifies `Must` panics on error
 - **TestMust_WithString**: Tests `Must` with string type
 - **TestMust_WithStruct**: Tests `Must` with struct type
-- **TestCheck_NoError**: Verifies `Check` doesn't panic without error
-- **TestCheck_WithError**: Verifies `Check` panics on error
-- **TestPanicIfError_NoError**: Verifies `PanicIfError` doesn't panic without error
-- **TestPanicIfError_WithError**: Verifies `PanicIfError` panics on error
+
+#### `security/password/password_test.go`
+
+Tests for password hashing and comparison:
+
+- **TestHash_Success**: Verifies password hashing works correctly
+- **TestHash_DifferentHashesForSamePassword**: Verifies bcrypt generates unique salts
+- **TestHash_EmptyPassword**: Tests hashing of empty passwords
+- **TestHash_LongPassword**: Tests bcrypt's 72-byte limit handling
+- **TestCompare_Success**: Verifies correct password comparison
+- **TestCompare_WrongPassword**: Verifies rejection of wrong passwords
+- **TestCompare_EmptyPassword**: Tests comparison with empty password
+- **TestCompare_InvalidHash**: Tests handling of invalid hash format
+- **TestCompare_EmptyHash**: Tests handling of empty hash
+- **TestCompare_CaseSensitive**: Verifies case-sensitive comparison
+- **TestHashAndCompare_MultiplePasswords**: Table-driven tests for various password types
+- **TestHash_Consistency**: Verifies hash consistency across multiple comparisons
+
+#### `http/client/client_test.go`
+
+Tests for HTTP client functionality:
+
+- **TestGetClient_Singleton**: Verifies singleton pattern implementation
+- **TestGet_Success**: Tests successful GET requests
+- **TestGet_InvalidURL**: Tests error handling for invalid URLs
+- **TestGet_ContextCancellation**: Tests context cancellation handling
+- **TestPost_Success**: Tests successful POST requests with JSON payload
+- **TestPut_Success**: Tests successful PUT requests
+- **TestPatch_Success**: Tests successful PATCH requests
+- **TestDoJSON_InvalidJSON**: Tests handling of invalid JSON payloads
+- **TestDoJSON_EmptyPayload**: Tests empty object payloads
+- **TestDoJSON_ComplexPayload**: Tests nested structures and arrays
+- **TestDoJSON_ServerError**: Tests handling of server errors
+
+#### `cache/redis/client_test.go`
+
+Tests for Redis client:
+
+- **TestConfig_Creation**: Verifies Redis config creation
+- **TestConfig_ZeroValues**: Tests default config values
+- **TestNewRedisClient_InvalidAddress**: Tests connection to invalid address
+- **TestNewRedisClient_ContextCancellation**: Tests context cancellation
+- **TestNewRedisClient_Success**: Integration test with real Redis (skipped if `TEST_REDIS_URL` not set)
+- **TestNewRedisClient_WithPassword**: Tests authenticated connections
+- **TestNewRedisClient_DifferentDB**: Tests different database selection
+- **TestNewRedisClient_CustomTimeouts**: Tests custom timeout configuration
+
+#### `runtime/shutdown/signal_test.go`
+
+Tests for graceful shutdown signal handling:
+
+- **TestWait_WithContextCancellation**: Tests context cancellation
+- **TestWait_WithSignal**: Tests signal reception
+- **TestWait_DefaultSignals**: Tests default SIGINT/SIGTERM handling
+- **TestWait_MultipleSignals**: Tests handling multiple signal types
+- **TestWait_ContextCancelBeforeSignal**: Tests context cancellation priority
+- **TestWaitForSignal_Integration**: Integration test for signal waiting
+- **TestWait_SignalCleanup**: Tests proper cleanup of signal handlers
+
+#### `validation/validator_test.go`
+
+Tests for validation functionality:
+
+- **TestNewValidator**: Verifies validator creation
+- **TestValidator_WithJSONTags**: Tests validation with JSON tags
+- **TestValidator_JSONTagNameFunc**: Tests JSON tag name function
+- **TestValidator_WithoutJSONTag**: Tests validation without JSON tags
+- **TestValidator_EmptyJSONTag**: Tests empty JSON tag handling
+- **TestValidator_ComplexValidation**: Tests nested struct validation
 
 #### `db/postgres/config_test.go`
 
@@ -43,8 +113,9 @@ Tests for database configuration:
 
 Tests for database connection:
 
-- **TestNewDatabase_InvalidDSN**: Verifies panic on invalid DSN
+- **TestNewDatabase_InvalidDSN**: Verifies error on invalid DSN
 - **TestNewDatabase_ValidConfig**: Integration test with real PostgreSQL (skipped if `TEST_DATABASE_URL` not set)
+
 
 ### Integration Tests
 
@@ -178,8 +249,15 @@ When adding new functionality:
 ### Current Focus Areas
 
 1. ✅ Error handling utilities - 100% coverage
-2. ✅ Database configuration - 100% coverage
-3. 🔄 Database connection pooling - 86.7% coverage (improve to 100%)
+2. ✅ Password hashing and security - 100% coverage
+3. ✅ Graceful shutdown handling - 100% coverage
+4. ✅ HTTP client functionality - 91.3% coverage
+5. ✅ Redis client - 80.0% coverage
+6. 🔄 Validation framework - 34.5% coverage (improve to 80%+)
+7. 🔄 Database connection pooling - 19.0% coverage (improve to 80%+)
+8. ⏳ HTTP server (Fiber) - 0% coverage (needs tests)
+9. ⏳ Messaging (Kafka/HTTP) - 0% coverage (needs tests)
+10. ⏳ Observability (logging/metrics) - 0% coverage (needs tests)
 
 ### Future Enhancements
 

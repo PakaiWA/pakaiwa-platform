@@ -37,14 +37,19 @@ func TestNewDatabase_InvalidDSN(t *testing.T) {
 		ConnectTimeout:    5 * time.Second,
 	}
 
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("Expected panic for invalid DSN, but didn't panic")
-		}
-	}()
-
 	ctx := context.Background()
-	NewDatabase(ctx, log, cfg)
+	pool, err := NewDatabase(ctx, log, cfg)
+
+	if err == nil {
+		if pool != nil {
+			pool.Close()
+		}
+		t.Error("Expected error for invalid DSN, got nil")
+	}
+
+	if pool != nil {
+		t.Error("Expected nil pool on error")
+	}
 }
 
 func TestNewDatabase_ValidConfig(t *testing.T) {
