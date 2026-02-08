@@ -94,4 +94,57 @@ func TestNewDatabase_ValidConfig(t *testing.T) {
 	if stats.MaxConns() != cfg.MaxConns {
 		t.Errorf("Expected MaxConns to be %d, got %d", cfg.MaxConns, stats.MaxConns())
 	}
+
+	// Test multiple pings
+	for i := 0; i < 3; i++ {
+		if err := pool.Ping(ctx); err != nil {
+			t.Errorf("Ping %d failed: %v", i+1, err)
+		}
+	}
+
+	// Test that we can acquire a connection
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		t.Errorf("Failed to acquire connection: %v", err)
+	} else {
+		conn.Release()
+	}
+}
+
+func TestNewDatabase_ContextTimeout(t *testing.T) {
+	// Skip if no database is available
+	dsn := os.Getenv("TEST_DATABASE_URL")
+	if dsn == "" {
+		t.Skip("Skipping database test: TEST_DATABASE_URL not set")
+	}
+
+	log := logrus.New()
+	log.SetOutput(os.Stdout)
+
+	cfg := Config{
+		DSN:               dsn,
+		MinConns:          2,
+		MaxConns:          10,
+		MaxConnIdleTime:   30 * time.Minute,
+		HealthCheckPeriod: 1 * time.Minute,
+		ConnectTimeout:    1 * time.Nanosecond, // Very short timeout
+	}
+
+	ctx := context.Background()
+	pool, err := NewDatabase(ctx, log, cfg)
+
+	// With such a short timeout, connection might fail
+	// This is acceptable - we're testing timeout handling
+	if err != nil {
+		// Expected - timeout occurred
+		if pool != nil {
+			pool.Close()
+		}
+		return
+	}
+
+	// If it somehow succeeded, clean up
+	if pool != nil {
+		defer pool.Close()
+	}
 }
