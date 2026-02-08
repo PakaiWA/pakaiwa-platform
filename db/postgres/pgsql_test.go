@@ -67,7 +67,11 @@ func TestNewDatabase_ValidConfig(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	pool := NewDatabase(ctx, log, cfg)
+	pool, err := NewDatabase(ctx, log, cfg)
+
+	if err != nil {
+		t.Fatalf("Failed to create database pool: %v", err)
+	}
 
 	if pool == nil {
 		t.Error("Expected pool to be initialized, got nil")

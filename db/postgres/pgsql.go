@@ -21,17 +21,14 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sirupsen/logrus"
-
-	"github.com/PakaiWA/pakaiwa-platform/errors"
 )
 
-// NewDatabase creates and configures a new PostgreSQL connection pool.
-// It initializes the pool with the provided configuration and verifies connectivity.
-// The function will panic if the DSN is invalid or if pool creation fails.
-func NewDatabase(ctx context.Context, log *logrus.Logger, cfg Config) *pgxpool.Pool {
+func NewDatabase(ctx context.Context, log *logrus.Logger, cfg Config) (*pgxpool.Pool, error) {
 	log.Info("Connecting to database...")
-
-	pgxCfg := errors.Must(pgxpool.ParseConfig(cfg.DSN))
+	pgxCfg, err := pgxpool.ParseConfig(cfg.DSN)
+	if err != nil {
+		return nil, err
+	}
 
 	pgxCfg.MinConns = cfg.MinConns
 	pgxCfg.MaxConns = cfg.MaxConns
@@ -40,14 +37,19 @@ func NewDatabase(ctx context.Context, log *logrus.Logger, cfg Config) *pgxpool.P
 	pgxCfg.ConnConfig.ConnectTimeout = cfg.ConnectTimeout
 
 	start := time.Now()
-	pool := errors.Must(pgxpool.NewWithConfig(ctx, pgxCfg))
+	pool, err := pgxpool.NewWithConfig(ctx, pgxCfg)
+	if err != nil {
+		return nil, err
+	}
 	log.WithField("duration", time.Since(start)).Debug("pgxpool initialized")
 
 	pingCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	if err := pool.Ping(pingCtx); err != nil {
 		log.WithError(err).Fatal("database ping failed")
+		pool.Close()
+		return nil, err
 	}
 
-	return pool
+	return pool, nil
 }
