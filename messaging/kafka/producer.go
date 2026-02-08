@@ -19,7 +19,6 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/PakaiWA/pakaiwa-platform/errors"
 	"github.com/PakaiWA/pakaiwa-platform/messaging/event"
 	"github.com/PakaiWA/pakaiwa-platform/messaging/producer"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
@@ -32,7 +31,11 @@ type KafkaProducer struct {
 }
 
 func NewKafkaProducer(cfg *kafka.ConfigMap, log *logrus.Logger) producer.MessageProducer {
-	p := errors.Must(kafka.NewProducer(cfg))
+	p, err := kafka.NewProducer(cfg)
+	if err != nil {
+		log.WithError(err).Error("failed to create kafka producer")
+		return nil
+	}
 
 	return &KafkaProducer{
 		p:   p,
