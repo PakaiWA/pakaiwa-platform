@@ -44,7 +44,7 @@ func TestGet_Success(t *testing.T) {
 			t.Errorf("Expected GET request, got %s", r.Method)
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("success"))
+		_, _ = w.Write([]byte("success")) //nolint:errcheck
 	}))
 	defer server.Close()
 
@@ -53,13 +53,15 @@ func TestGet_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close() //nolint:errcheck
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
 	}
 
-	body, _ := io.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body) //nolint:errcheck
 	if string(body) != "success" {
 		t.Errorf("Expected 'success', got %s", string(body))
 	}
@@ -115,7 +117,7 @@ func TestPost_Success(t *testing.T) {
 		}
 
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(payload)
+		_ = json.NewEncoder(w).Encode(payload) //nolint:errcheck
 	}))
 	defer server.Close()
 
@@ -126,7 +128,9 @@ func TestPost_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close() //nolint:errcheck
+	}()
 
 	if resp.StatusCode != http.StatusCreated {
 		t.Errorf("Expected status 201, got %d", resp.StatusCode)
@@ -150,7 +154,7 @@ func TestPut_Success(t *testing.T) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(payload)
+		_ = json.NewEncoder(w).Encode(payload) //nolint:errcheck
 	}))
 	defer server.Close()
 
@@ -161,7 +165,9 @@ func TestPut_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close() //nolint:errcheck
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -184,7 +190,7 @@ func TestPatch_Success(t *testing.T) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(payload)
+		_ = json.NewEncoder(w).Encode(payload) //nolint:errcheck
 	}))
 	defer server.Close()
 
@@ -195,7 +201,9 @@ func TestPatch_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close() //nolint:errcheck
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -219,7 +227,7 @@ func TestDoJSON_InvalidJSON(t *testing.T) {
 
 func TestDoJSON_EmptyPayload(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+		body, _ := io.ReadAll(r.Body) //nolint:errcheck
 		if string(body) != "{}" {
 			t.Errorf("Expected empty object {}, got %s", string(body))
 		}
@@ -234,7 +242,9 @@ func TestDoJSON_EmptyPayload(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close() //nolint:errcheck
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -289,7 +299,9 @@ func TestDoJSON_ComplexPayload(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close() //nolint:errcheck
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -299,7 +311,7 @@ func TestDoJSON_ComplexPayload(t *testing.T) {
 func TestDoJSON_ServerError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Internal Server Error"))
+		_, _ = w.Write([]byte("Internal Server Error")) //nolint:errcheck
 	}))
 	defer server.Close()
 
@@ -312,7 +324,9 @@ func TestDoJSON_ServerError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close() //nolint:errcheck
+	}()
 
 	if resp.StatusCode != http.StatusInternalServerError {
 		t.Errorf("Expected status 500, got %d", resp.StatusCode)

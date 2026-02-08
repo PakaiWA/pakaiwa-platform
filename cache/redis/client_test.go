@@ -84,7 +84,7 @@ func TestNewRedisClient_InvalidAddress(t *testing.T) {
 
 	if err == nil {
 		if client != nil {
-			client.Close()
+			_ = client.Close() //nolint:errcheck
 		}
 		t.Error("Expected error for invalid Redis address")
 	}
@@ -111,7 +111,7 @@ func TestNewRedisClient_ContextCancellation(t *testing.T) {
 
 	if err == nil {
 		if client != nil {
-			client.Close()
+			_ = client.Close() //nolint:errcheck
 		}
 		t.Error("Expected error for cancelled context")
 	}
@@ -142,7 +142,9 @@ func TestNewRedisClient_Success(t *testing.T) {
 	if client == nil {
 		t.Fatal("Expected non-nil client")
 	}
-	defer client.Close()
+	defer func() {
+		_ = client.Close() //nolint:errcheck
+	}()
 
 	// Test basic operation
 	err = client.Set(ctx, "test_key", "test_value", 10*time.Second).Err()
@@ -190,7 +192,9 @@ func TestNewRedisClient_WithPassword(t *testing.T) {
 	if client == nil {
 		t.Fatal("Expected non-nil client")
 	}
-	defer client.Close()
+	defer func() {
+		_ = client.Close() //nolint:errcheck
+	}()
 }
 
 func TestNewRedisClient_DifferentDB(t *testing.T) {
@@ -218,7 +222,9 @@ func TestNewRedisClient_DifferentDB(t *testing.T) {
 	if client == nil {
 		t.Fatal("Expected non-nil client")
 	}
-	defer client.Close()
+	defer func() {
+		_ = client.Close() //nolint:errcheck
+	}()
 }
 
 func TestNewRedisClient_CustomTimeouts(t *testing.T) {
@@ -246,5 +252,7 @@ func TestNewRedisClient_CustomTimeouts(t *testing.T) {
 	if client == nil {
 		t.Fatal("Expected non-nil client")
 	}
-	defer client.Close()
+	defer func() {
+		_ = client.Close() //nolint:errcheck
+	}()
 }

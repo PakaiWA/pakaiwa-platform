@@ -114,7 +114,7 @@ func TestValidator_JSONTagNameFunc(t *testing.T) {
 	}
 
 	// Verify that the error message uses the JSON tag name
-	validationErrors := err.(interface{ Error() string })
+	validationErrors, _ := err.(interface{ Error() string }) //nolint:errcheck
 	errMsg := validationErrors.Error()
 
 	// The error should reference "user_name" (from json tag), not "UserName"

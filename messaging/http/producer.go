@@ -58,7 +58,9 @@ func (h *HttpProducer) Send(ctx context.Context, topic string, key []byte, clien
 		h.log.WithError(err).Error("failed to send http message")
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close() //nolint:errcheck
+	}()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		err = fmt.Errorf("http producer returned status: %d", resp.StatusCode)

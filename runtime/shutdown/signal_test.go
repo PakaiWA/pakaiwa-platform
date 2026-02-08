@@ -189,7 +189,7 @@ func TestWaitForSignal_Integration(t *testing.T) {
 		done <- true
 
 		// Send signal to unblock (this will affect the actual WaitForSignal call)
-		proc.Signal(os.Interrupt)
+		_ = proc.Signal(os.Interrupt) //nolint:errcheck
 	}()
 
 	select {

@@ -43,7 +43,7 @@ func NewRedisClient(ctx context.Context, cfg Config) (*redis.Client, error) {
 
 	// health check
 	if err := rdb.Ping(ctx).Err(); err != nil {
-		_ = rdb.Close()
+		_ = rdb.Close() //nolint:errcheck
 		return nil, err
 	}
 

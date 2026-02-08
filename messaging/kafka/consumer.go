@@ -34,7 +34,7 @@ func NewKafkaConsumer(cfg ConsumerConfig) (*kafka.Consumer, error) {
 	}
 
 	for k, v := range cfg.Options {
-		_ = m.SetKey(k, v)
+		_ = m.SetKey(k, v) //nolint:errcheck
 	}
 
 	return kafka.NewConsumer(m)
