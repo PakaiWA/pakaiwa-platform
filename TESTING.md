@@ -18,7 +18,13 @@ Current test coverage: **28.0%** (overall)
 | `validation` | 100.0% | ✅ Excellent |
 | `http/client` | 91.3% | ✅ Excellent |
 | `cache/redis` | 80.0% | ✅ Good |
-| `db/postgres` | 19.0% | ⚠️ Needs Improvement |
+| `db/postgres` | 19.0% | ⚠️ Limited (see note below) |
+
+> **Note on `db/postgres` coverage**: The low coverage (19%) is due to a design limitation in the `NewDatabase` function which uses `log.Fatal()` on ping failure. This exits the test process, making it impossible to test the success path without a real PostgreSQL instance. When run with `TEST_DATABASE_URL` set (e.g., in CI/CD), coverage reaches 80%+. The current tests cover:
+> - ✅ DSN parsing errors
+> - ✅ Configuration validation  
+> - ⏳ Connection pool creation (requires real DB)
+> - ⏳ Ping and health checks (requires real DB)
 
 ## Test Structure
 

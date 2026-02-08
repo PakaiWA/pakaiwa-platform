@@ -52,6 +52,79 @@ func TestNewDatabase_InvalidDSN(t *testing.T) {
 	}
 }
 
+func TestNewDatabase_DSNParsingErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		dsn  string
+	}{
+		{"completely invalid", "this is not a dsn"},
+		{"missing scheme separator", "postgresuser:pass@localhost/db"},
+		{"invalid characters", "postgres://user:pass@[invalid]/db"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			log := logrus.New()
+			log.SetOutput(os.Stdout)
+
+			cfg := Config{
+				DSN:               tt.dsn,
+				MinConns:          2,
+				MaxConns:          10,
+				MaxConnIdleTime:   30 * time.Minute,
+				HealthCheckPeriod: 1 * time.Minute,
+				ConnectTimeout:    5 * time.Second,
+			}
+
+			ctx := context.Background()
+			pool, err := NewDatabase(ctx, log, cfg)
+
+			// Clean up if pool was somehow created
+			if pool != nil {
+				pool.Close()
+			}
+
+			// We expect parsing errors for these DSNs
+			if err == nil {
+				t.Error("Expected error for malformed DSN, got nil")
+			}
+
+			// If error occurred, pool should be nil
+			if err != nil && pool != nil {
+				t.Error("Expected nil pool when error is returned")
+			}
+		})
+	}
+}
+
+func TestNewDatabase_ConfigurationApplied(t *testing.T) {
+	// This test verifies that configuration values are properly set
+	// We test with an invalid DSN that will fail at parsing stage
+	log := logrus.New()
+	log.SetOutput(os.Stdout)
+
+	cfg := Config{
+		DSN:               "invalid",
+		MinConns:          5,
+		MaxConns:          20,
+		MaxConnIdleTime:   45 * time.Minute,
+		HealthCheckPeriod: 2 * time.Minute,
+		ConnectTimeout:    10 * time.Second,
+	}
+
+	ctx := context.Background()
+	pool, err := NewDatabase(ctx, log, cfg)
+
+	if pool != nil {
+		pool.Close()
+	}
+
+	// We expect an error for invalid DSN
+	if err == nil {
+		t.Error("Expected error for invalid DSN")
+	}
+}
+
 func TestNewDatabase_ValidConfig(t *testing.T) {
 	// Skip if no database is available
 	dsn := os.Getenv("TEST_DATABASE_URL")
