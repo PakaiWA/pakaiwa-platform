@@ -10,7 +10,7 @@
  *
  * @author KAnggara on Saturday 07/02/2026 20.01
  * @project pp
- * https://github.com/PakaiWA/PakaiWA/tree/main/~/work/PakaiWA/pp/messaging/kafka
+ * https://github.com/PakaiWA/pakaiwa-platform/tree/main/messaging/kafka
  */
 
 package kafka

@@ -10,7 +10,7 @@
  *
  * @author KAnggara on Sunday 01/02/2026 17.39
  * @project PakaiWA
- * https://github.com/PakaiWA/PakaiWA/tree/main/internal/pkg/producer
+ * https://github.com/PakaiWA/pakaiwa-platform/tree/main/messaging/producer
  */
 
 package producer

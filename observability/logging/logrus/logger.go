@@ -10,7 +10,7 @@
  *
  * @author KAnggara on Sunday 08/02/2026 10.21
  * @project pp
- * https://github.com/PakaiWA/pp/tree/main/observability/logging/logrus
+ * https://github.com/PakaiWA/pakaiwa-platform/tree/main/observability/logging/logrus
  */
 
 package logrus

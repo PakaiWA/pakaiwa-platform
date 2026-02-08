@@ -10,7 +10,7 @@
  *
  * @author KAnggara on Saturday 08/02/2026 11.08
  * @project pp
- * https://github.com/PakaiWA/pp/tree/main/validation
+ * https://github.com/PakaiWA/pakaiwa-platform/tree/main/validation
  */
 
 package validation

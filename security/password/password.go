@@ -10,7 +10,7 @@
  *
  * @author KAnggara on Sunday 08/02/2026 09.06
  * @project pp
- * https://github.com/PakaiWA/pp/tree/main/security/password
+ * https://github.com/PakaiWA/pakaiwa-platform/tree/main/security/password
  */
 
 package password

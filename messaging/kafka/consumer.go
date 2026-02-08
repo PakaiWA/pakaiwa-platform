@@ -10,7 +10,7 @@
  *
  * @author KAnggara75 on Sat 06/09/25 11.04
  * @project PakaiWA kafka
- * https://github.com/PakaiWA/PakaiWA/tree/main/internal/pkg/kafka
+ * https://github.com/PakaiWA/pakaiwa-platform/tree/main/messaging/kafka
  */
 
 package kafka

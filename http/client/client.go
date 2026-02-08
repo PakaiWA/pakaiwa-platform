@@ -10,7 +10,7 @@
  *
  * @author KAnggara on Saturday 07/02/2026 19.36
  * @project pp
- * https://github.com/PakaiWA/PakaiWA/tree/main/~/work/PakaiWA/pp/http/client
+ * https://github.com/PakaiWA/pakaiwa-platform/tree/main/http/client
  */
 
 package client

@@ -10,7 +10,7 @@
  *
  * @author KAnggara75 on Sat 06/09/25 10.59
  * @project PakaiWA httpserver
- * https://github.com/PakaiWA/PakaiWA/tree/main/internal/pkg/httpserver
+ * https://github.com/PakaiWA/pakaiwa-platform/tree/main/http/server/fiber
  */
 
 package httpserver

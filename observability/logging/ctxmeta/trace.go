@@ -11,7 +11,7 @@
  * @author KAnggara on Tuesday 16/12/2025 06.35
  * @project PakaiWA
  * ~/work/PakaiWA/PakaiWA/internal/pkg/logger/ctxmeta
- * https://github.com/PakaiWA/PakaiWA/tree/main/internal/pkg/logger/ctxmeta
+ * https://github.com/PakaiWA/pakaiwa-platform/tree/main/observability/logging/ctxmeta
  */
 
 package ctxmeta

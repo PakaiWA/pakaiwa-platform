@@ -10,7 +10,7 @@
  *
  * @author KAnggara on Saturday 07/02/2026 20.25
  * @project pp
- * https://github.com/PakaiWA/PakaiWA/tree/main/~/work/PakaiWA/pp/messaging/http
+ * https://github.com/PakaiWA/pakaiwa-platform/tree/main/messaging/http
  */
 
 package http

@@ -10,7 +10,7 @@
  *
  * @author KAnggara on Saturday 07/02/2026 18.39
  * @project pp
- * https://github.com/PakaiWA/PakaiWA/tree/main/~/work/PakaiWA/pp/errors
+ * https://github.com/PakaiWA/pakaiwa-platform/tree/main/errors
  */
 
 package errors

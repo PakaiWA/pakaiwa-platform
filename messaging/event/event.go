@@ -10,7 +10,7 @@
  *
  * @author KAnggara on Thursday 05/02/2026 06.43
  * @project PakaiWA
- * https://github.com/PakaiWA/PakaiWA/tree/main/internal/app/pakaiwa/domain/event
+ * https://github.com/PakaiWA/pakaiwa-platform/tree/main/messaging/event
  */
 
 package event

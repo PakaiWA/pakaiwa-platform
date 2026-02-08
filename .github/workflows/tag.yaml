@@ -1,6 +1,17 @@
 name: Go and Auto Tag (v0.yy.m-dhhmm)
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+  pull_request:
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
 
 env:
   GOTOOLCHAIN: local
