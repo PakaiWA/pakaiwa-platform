@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -38,16 +37,18 @@ type OrderedJSONFormatter struct {
 	EscapeHTML      bool
 }
 
+const fixedRFC3339Nano = "2006-01-02T15:04:05.000Z07:00"
+
 func NewLogger(logLevel logrus.Level) *logrus.Logger {
 	l := logrus.New()
 	l.SetLevel(logLevel)
 	l.SetFormatter(&logrus.JSONFormatter{
-		TimestampFormat: time.RFC3339Nano,
+		TimestampFormat: fixedRFC3339Nano,
 	})
 
 	l.SetFormatter(&OrderedJSONFormatter{
 		PadLevelTo:      5,
-		TimestampFormat: time.RFC3339Nano,
+		TimestampFormat: fixedRFC3339Nano,
 		LevelKey:        "level",
 		TimeKey:         "time",
 		MsgKey:          "msg",
@@ -65,7 +66,7 @@ func (f *OrderedJSONFormatter) Format(e *logrus.Entry) ([]byte, error) {
 	}
 	tsFmt := f.TimestampFormat
 	if tsFmt == "" {
-		tsFmt = time.RFC3339Nano
+		tsFmt = fixedRFC3339Nano
 	}
 
 	msgKey := keyOr(f.MsgKey, "msg")
