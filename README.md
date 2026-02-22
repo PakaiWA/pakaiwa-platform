@@ -1,6 +1,6 @@
 # PakaiWA Platform
 
-[![CI Tests](https://github.com/PakaiWA/pakaiwa-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/PakaiWA/pakaiwa-platform/actions/workflows/ci.yml)
+[![CI Tests](https://github.com/PakaiWA/pakaiwa-platform/actions/workflows/CI.yaml/badge.svg)](https://github.com/PakaiWA/pakaiwa-platform/actions/workflows/CI.yaml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/PakaiWA/pakaiwa-platform)](https://goreportcard.com/report/github.com/PakaiWA/pakaiwa-platform)
 [![codecov](https://codecov.io/gh/PakaiWA/pakaiwa-platform/branch/main/graph/badge.svg)](https://codecov.io/gh/PakaiWA/pakaiwa-platform)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
@@ -155,9 +155,21 @@ go test -v ./...
 
 The project maintains high test coverage:
 
-- **errors package**: 100% coverage
-- **db/postgres package**: 86.7% coverage
-- **Overall**: 91.3% coverage
+| Package | Coverage |
+|---|---|
+| `errors` | 100% |
+| `security/password` | 100% |
+| `runtime/shutdown` | 100% |
+| `validation` | 100% |
+| `observability/logging/ctxmeta` | 100% |
+| `observability/logging/logrus` | 99% |
+| `messaging/http` | 100% |
+| `http/server/fiber` | 100% |
+| `observability/metrics` | ~92% |
+| `http/client` | ~91% |
+| `cache/redis` | 80% |
+| `messaging/kafka` | ~30% *(requires live broker for full coverage)* |
+| `db/postgres` | ~19% *(requires live DB for full coverage)* |
 
 Tests include:
 - Unit tests for all public functions
