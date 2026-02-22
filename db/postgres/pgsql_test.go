@@ -79,7 +79,7 @@ func TestNewDatabase_DSNParsingErrors(t *testing.T) {
 				ConnectTimeout:    5 * time.Second,
 			}
 
-			pool, err := NewDatabase(ctx, cfg, "TEST")
+			pool, err := NewDatabase(ctx, cfg, "TESTING")
 
 			// Clean up if pool was somehow created
 			if pool != nil {
