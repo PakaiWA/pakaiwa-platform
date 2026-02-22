@@ -168,7 +168,7 @@ The project maintains high test coverage:
 | `observability/metrics` | ~92% |
 | `http/client` | ~91% |
 | `cache/redis` | 80% |
-| `messaging/kafka` | ~30% *(requires live broker for full coverage)* |
+| `messaging/kafka` | **100%** |
 | `db/postgres` | ~19% *(requires live DB for full coverage)* |
 
 Tests include:

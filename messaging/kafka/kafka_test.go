@@ -20,6 +20,7 @@ import (
 
 	"github.com/PakaiWA/pakaiwa-platform/observability/logging/ctxmeta"
 	logrushelper "github.com/PakaiWA/pakaiwa-platform/observability/logging/logrus"
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
 )
 
@@ -98,7 +99,6 @@ func TestProducer_Send_Success(t *testing.T) {
 	p := &Producer[testEvent]{
 		Producer: mock,
 		Topic:    "events",
-		Log:      logrus.New(),
 	}
 
 	evt := testEvent{ID: "e1", Name: "user.created", Key: "user-123"}
@@ -135,7 +135,6 @@ func TestProducer_Send_ProducerError(t *testing.T) {
 	p := &Producer[testEvent]{
 		Producer: mock,
 		Topic:    "events",
-		Log:      logrus.New(),
 	}
 
 	evt := testEvent{ID: "e2", Name: "test.event", Key: "k2"}
@@ -146,6 +145,69 @@ func TestProducer_Send_ProducerError(t *testing.T) {
 
 	if err.Error() != "broker unavailable" {
 		t.Errorf("Expected 'broker unavailable', got %q", err.Error())
+	}
+}
+
+// unmarshalableEvent is an event.Event whose JSON encoding always fails.
+type unmarshalableEvent struct{}
+
+func (e unmarshalableEvent) EventID() string   { return "id" }
+func (e unmarshalableEvent) EventName() string { return "name" }
+func (e unmarshalableEvent) EventKey() string  { return "key" }
+
+// MarshalJSON makes this type always return a JSON error.
+func (e unmarshalableEvent) MarshalJSON() ([]byte, error) {
+	return nil, errors.New("cannot marshal: intentional error")
+}
+
+// TestProducer_Send_MarshalError covers the json.Marshal error branch in
+// Producer[T].Send when the event cannot be serialised.
+func TestProducer_Send_MarshalError(t *testing.T) {
+	mock := &mockProducer{}
+	p := &Producer[unmarshalableEvent]{
+		Producer: mock,
+		Topic:    "events",
+	}
+
+	err := p.Send(contextWithLogger(), unmarshalableEvent{}, "device")
+	if err == nil {
+		t.Error("Expected error from marshal failure, got nil")
+	}
+
+	if mock.sendCalled {
+		t.Error("Underlying Send should NOT be called when marshal fails")
+	}
+}
+
+// TestProducer_Send_MarshalError_NoLogger verifies the p.Log fallback branch
+// in Producer[T].Send when there is no logger in context and p.Log is set.
+func TestProducer_Send_MarshalError_NoLogger(t *testing.T) {
+	mock := &mockProducer{}
+	p := &Producer[unmarshalableEvent]{
+		Producer: mock,
+		Topic:    "events",
+	}
+
+	// context.Background() has no logger → ctxmeta.Logger returns nil → p.Log branch
+	err := p.Send(context.Background(), unmarshalableEvent{}, "device")
+	if err == nil {
+		t.Error("Expected error from marshal failure, got nil")
+	}
+}
+
+// TestProducer_Send_MarshalError_NoLoggerNoLog verifies the logrus fallback
+// when both context logger and p.Log are nil.
+func TestProducer_Send_MarshalError_NoLoggerNoLog(t *testing.T) {
+	mock := &mockProducer{}
+	p := &Producer[unmarshalableEvent]{
+		Producer: mock,
+		Topic:    "events",
+	}
+
+	// context.Background() has no logger, p.Log is nil → logrus standard logger branch
+	err := p.Send(context.Background(), unmarshalableEvent{}, "device")
+	if err == nil {
+		t.Error("Expected error from marshal failure, got nil")
 	}
 }
 
@@ -177,6 +239,20 @@ func TestStartProducerPollLoop_CancelledContext(t *testing.T) {
 }
 
 // ---- NewKafkaConsumer tests ----
+
+func TestNewKafkaProducer_InvalidConfig(t *testing.T) {
+	// An invalid debug category causes kafka.NewProducer to fail.
+	// After our nil-logger fix, the error is logged via logrus.StandardLogger().
+	result := NewKafkaProducer(&kafka.ConfigMap{
+		"bootstrap.servers": "localhost:9092",
+		"debug":             "all,invalid.category",
+	})
+
+	if result != nil {
+		t.Error("Expected nil producer for invalid config, got non-nil")
+		_ = result.Close() //nolint:errcheck
+	}
+}
 
 func TestNewKafkaConsumer_InvalidBroker(t *testing.T) {
 	// confluent-kafka-go creates the consumer eagerly — an invalid broker

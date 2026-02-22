@@ -31,10 +31,9 @@ type KafkaProducer struct {
 }
 
 func NewKafkaProducer(cfg *kafka.ConfigMap) producer.MessageProducer {
-	log := ctxmeta.Logger(context.Background())
 	p, err := kafka.NewProducer(cfg)
 	if err != nil {
-		log.WithError(err).Error("failed to create kafka producer")
+		logrus.WithError(err).Error("failed to create kafka producer")
 		return nil
 	}
 
@@ -44,7 +43,7 @@ func NewKafkaProducer(cfg *kafka.ConfigMap) producer.MessageProducer {
 }
 
 func (k *KafkaProducer) Send(ctx context.Context, topic string, key []byte, clientJID []byte, value []byte) error {
-	log := ctxmeta.Logger(ctx).WithField("device_id", clientJID)
+	entry := ctxmeta.Logger(ctx)
 
 	msg := &kafka.Message{
 		TopicPartition: kafka.TopicPartition{
@@ -69,7 +68,11 @@ func (k *KafkaProducer) Send(ctx context.Context, topic string, key []byte, clie
 			// atau handle di level atas.
 			return err
 		}
-		log.WithError(err).Error("failed to produce kafka message")
+		if entry != nil {
+			entry.WithField("device_id", clientJID).WithError(err).Error("failed to produce kafka message")
+		} else {
+			logrus.WithField("device_id", clientJID).WithError(err).Error("failed to produce kafka message")
+		}
 		return err
 	}
 
@@ -94,14 +97,17 @@ func (k *KafkaProducer) Events() chan kafka.Event {
 type Producer[T event.Event] struct {
 	Producer producer.MessageProducer
 	Topic    string
-	Log      *logrus.Logger
 }
 
 func (p *Producer[T]) Send(ctx context.Context, evt T, clientJID string) error {
-	log := ctxmeta.Logger(ctx).WithField("device_id", clientJID)
+	entry := ctxmeta.Logger(ctx)
 	value, err := json.Marshal(evt)
 	if err != nil {
-		log.WithError(err).Error("failed to marshal event")
+		if entry != nil {
+			entry.WithField("device_id", clientJID).WithError(err).Error("failed to marshal event")
+		} else {
+			logrus.WithField("device_id", clientJID).WithError(err).Error("failed to marshal event")
+		}
 		return err
 	}
 
