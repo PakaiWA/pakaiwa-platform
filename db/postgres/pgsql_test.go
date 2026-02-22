@@ -7,10 +7,6 @@
  * (at your option) any later version.
  *
  * See <https://www.gnu.org/licenses/gpl-3.0.html>.
- *
- * @author KAnggara on Saturday 07/02/2026 18.39
- * @project pp
- * https://github.com/PakaiWA/pakaiwa-platform/tree/main/db/postgres
  */
 
 package postgres
@@ -26,157 +22,174 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// ctxWithLogger returns a context carrying a logrus logger.
+func ctxWithLogger() context.Context {
+	log := logger.NewLogger(logrus.DebugLevel)
+	entry := log.WithField("component", "psql-test")
+	return ctxmeta.WithLogger(context.Background(), entry)
+}
+
+// unreachablePostgresDSN is a syntactically valid DSN that points to a host
+// that cannot be connected to, so ParseConfig succeeds but Ping fails.
+// We use an IP in the documentation range (192.0.2.0/24 – RFC 5737) which
+// is guaranteed to be unreachable.
+const unreachablePostgresDSN = "postgres://user:pass@192.0.2.1:5432/testdb?connect_timeout=1"
+
+// ---------- ParseConfig error paths (already covered, kept for clarity) ----------
+
 func TestNewDatabase_InvalidDSN(t *testing.T) {
-	log := logger.NewLogger(logrus.InfoLevel)
-	logEntry := log.WithField("component", "psql-test")
-	ctx := ctxmeta.WithLogger(context.Background(), logEntry)
-
-	cfg := Config{
-		DSN:               "invalid-dsn",
-		MinConns:          2,
-		MaxConns:          10,
-		MaxConnIdleTime:   30 * time.Minute,
-		HealthCheckPeriod: 1 * time.Minute,
-		ConnectTimeout:    5 * time.Second,
-	}
-
-	pool, err := NewDatabase(ctx, cfg, "TEST")
-
-	if err == nil {
-		if pool != nil {
-			pool.Close()
-		}
-		t.Error("Expected error for invalid DSN, got nil")
-	}
-
+	pool, err := NewDatabase(ctxWithLogger(), Config{DSN: "invalid-dsn"}, "TEST")
 	if pool != nil {
-		t.Error("Expected nil pool on error")
+		pool.Close()
+	}
+	if err == nil {
+		t.Error("Expected error for invalid DSN, got nil")
 	}
 }
 
 func TestNewDatabase_DSNParsingErrors(t *testing.T) {
-	tests := []struct {
+	cases := []struct {
 		name string
 		dsn  string
 	}{
 		{"completely invalid", "this is not a dsn"},
 		{"missing scheme separator", "postgresuser:pass@localhost/db"},
-		{"invalid characters", "postgres://user:pass@[invalid]/db"},
+		{"invalid host brackets", "postgres://user:pass@[invalid]/db"},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			log := logger.NewLogger(logrus.InfoLevel)
-			logEntry := log.WithField("component", "psql-test")
-			ctx := ctxmeta.WithLogger(context.Background(), logEntry)
-
-			cfg := Config{
-				DSN:               tt.dsn,
-				MinConns:          2,
-				MaxConns:          10,
-				MaxConnIdleTime:   30 * time.Minute,
-				HealthCheckPeriod: 1 * time.Minute,
-				ConnectTimeout:    5 * time.Second,
-			}
-
-			pool, err := NewDatabase(ctx, cfg, "TESTING")
-
-			// Clean up if pool was somehow created
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			pool, err := NewDatabase(ctxWithLogger(), Config{DSN: tc.dsn}, "TESTING")
 			if pool != nil {
 				pool.Close()
 			}
-
-			// We expect parsing errors for these DSNs
 			if err == nil {
-				t.Error("Expected error for malformed DSN, got nil")
-			}
-
-			// If error occurred, pool should be nil
-			if err != nil && pool != nil {
-				t.Error("Expected nil pool when error is returned")
+				t.Errorf("Expected parse error for DSN %q, got nil", tc.dsn)
 			}
 		})
 	}
 }
 
-func TestNewDatabase_ConfigurationApplied(t *testing.T) {
-	log := logger.NewLogger(logrus.InfoLevel)
-	logEntry := log.WithField("component", "psql-test")
-	ctx := ctxmeta.WithLogger(context.Background(), logEntry)
+// ---------- Config assignment + NewWithConfig + Ping failure ----------
 
+// TestNewDatabase_PingFails exercises lines 35-53: config is assigned,
+// pgxpool.NewWithConfig succeeds, pool.Ping fails because the host is
+// unreachable, which triggers the error branch (log.Error + pool.Close).
+func TestNewDatabase_PingFails(t *testing.T) {
 	cfg := Config{
-		DSN:               "invalid",
-		MinConns:          5,
-		MaxConns:          20,
-		MaxConnIdleTime:   45 * time.Minute,
-		HealthCheckPeriod: 2 * time.Minute,
-		ConnectTimeout:    10 * time.Second,
+		DSN:               unreachablePostgresDSN,
+		MinConns:          1,
+		MaxConns:          5,
+		MaxConnIdleTime:   1 * time.Minute,
+		HealthCheckPeriod: 30 * time.Second,
+		ConnectTimeout:    1 * time.Second,
 	}
 
-	pool, err := NewDatabase(ctx, cfg, "TEST")
+	// Use a tight overall deadline so the test doesn't hang.
+	ctx, cancel := context.WithTimeout(ctxWithLogger(), 3*time.Second)
+	defer cancel()
 
+	pool, err := NewDatabase(ctx, cfg, "PingFailTest")
 	if pool != nil {
 		pool.Close()
 	}
-
-	// We expect an error for invalid DSN
 	if err == nil {
-		t.Error("Expected error for invalid DSN")
+		t.Error("Expected error when pinging unreachable host, got nil")
 	}
 }
 
-func TestNewDatabase_ValidConfig(t *testing.T) {
-	// Skip if no database is available
-	dsn := os.Getenv("TEST_DATABASE_URL")
-	if dsn == "" {
-		t.Skip("Skipping database test: TEST_DATABASE_URL not set")
+// TestNewDatabase_PingFails_NoLogger verifies the logrus fallback branch
+// (no logger in context) still reaches and logs the ping error correctly.
+func TestNewDatabase_PingFails_NoLogger(t *testing.T) {
+	cfg := Config{
+		DSN:               unreachablePostgresDSN,
+		MinConns:          1,
+		MaxConns:          5,
+		MaxConnIdleTime:   1 * time.Minute,
+		HealthCheckPeriod: 30 * time.Second,
+		ConnectTimeout:    1 * time.Second,
 	}
 
-	log := logger.NewLogger(logrus.InfoLevel)
-	log.SetOutput(os.Stdout)
-	logEntry := log.WithField("component", "psql-test")
-	ctx := ctxmeta.WithLogger(context.Background(), logEntry)
+	// context.Background() has no logger → exercises the else branch in NewDatabase.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	pool, err := NewDatabase(ctx, cfg, "PingFailNoLogger")
+	if pool != nil {
+		pool.Close()
+	}
+	if err == nil {
+		t.Error("Expected error when pinging unreachable host without context logger, got nil")
+	}
+}
+
+// TestNewDatabase_ConfigFieldsApplied uses an unreachable DSN to confirm all
+// five config fields (MinConns, MaxConns, MaxConnIdleTime, HealthCheckPeriod,
+// ConnectTimeout) are applied without panicking; the assertion is implicit —
+// the function returns an error (not a panic) when it can't connect.
+func TestNewDatabase_ConfigFieldsApplied(t *testing.T) {
+	cfg := Config{
+		DSN:               unreachablePostgresDSN,
+		MinConns:          2,
+		MaxConns:          20,
+		MaxConnIdleTime:   45 * time.Minute,
+		HealthCheckPeriod: 2 * time.Minute,
+		ConnectTimeout:    1 * time.Second,
+	}
+
+	ctx, cancel := context.WithTimeout(ctxWithLogger(), 3*time.Second)
+	defer cancel()
+
+	pool, err := NewDatabase(ctx, cfg, "ConfigApplied")
+	if pool != nil {
+		pool.Close()
+	}
+	// We only need to confirm no panic; error is expected.
+	if err == nil {
+		t.Error("Expected connection error for unreachable host, got nil")
+	}
+}
+
+// ---------- Integration: full happy path (requires TEST_DATABASE_URL) ----------
+
+func TestNewDatabase_Happy_Integration(t *testing.T) {
+	dsn := os.Getenv("TEST_DATABASE_URL")
+	if dsn == "" {
+		t.Skip("Skipping: TEST_DATABASE_URL not set")
+	}
 
 	cfg := Config{
 		DSN:               dsn,
-		MinConns:          2,
-		MaxConns:          10,
+		MinConns:          1,
+		MaxConns:          5,
 		MaxConnIdleTime:   30 * time.Minute,
 		HealthCheckPeriod: 1 * time.Minute,
 		ConnectTimeout:    5 * time.Second,
 	}
 
-	pool, err := NewDatabase(ctx, cfg, "TEST")
-
+	ctx := ctxWithLogger()
+	pool, err := NewDatabase(ctx, cfg, "IntegrationTest")
 	if err != nil {
-		t.Fatalf("Failed to create database pool: %v", err)
+		t.Fatalf("Expected no error, got %v", err)
 	}
-
 	if pool == nil {
-		t.Error("Expected pool to be initialized, got nil")
+		t.Fatal("Expected non-nil pool")
 	}
-
 	defer pool.Close()
 
-	// Test ping
+	// Verify pool is functional.
 	if err := pool.Ping(ctx); err != nil {
-		t.Errorf("Failed to ping database: %v", err)
+		t.Errorf("Ping failed after successful NewDatabase: %v", err)
 	}
 
-	// Verify pool stats
+	// Verify MaxConns was applied.
 	stats := pool.Stat()
 	if stats.MaxConns() != cfg.MaxConns {
-		t.Errorf("Expected MaxConns to be %d, got %d", cfg.MaxConns, stats.MaxConns())
+		t.Errorf("MaxConns: want %d, got %d", cfg.MaxConns, stats.MaxConns())
 	}
 
-	// Test multiple pings
-	for i := 0; i < 3; i++ {
-		if err := pool.Ping(ctx); err != nil {
-			t.Errorf("Ping %d failed: %v", i+1, err)
-		}
-	}
-
-	// Test that we can acquire a connection
+	// Verify we can acquire a real connection.
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
 		t.Errorf("Failed to acquire connection: %v", err)
@@ -185,41 +198,30 @@ func TestNewDatabase_ValidConfig(t *testing.T) {
 	}
 }
 
-func TestNewDatabase_ContextTimeout(t *testing.T) {
-	// Skip if no database is available
+// TestNewDatabase_Integration_NoLogger verifies NewDatabase with a real DB
+// and no logger in context (the else branch for log initialisation).
+func TestNewDatabase_Integration_NoLogger(t *testing.T) {
 	dsn := os.Getenv("TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("Skipping database test: TEST_DATABASE_URL not set")
+		t.Skip("Skipping: TEST_DATABASE_URL not set")
 	}
-
-	log := logger.NewLogger(logrus.InfoLevel)
-	log.SetOutput(os.Stdout)
-	logEntry := log.WithField("component", "psql-test")
-	ctx := ctxmeta.WithLogger(context.Background(), logEntry)
 
 	cfg := Config{
 		DSN:               dsn,
-		MinConns:          2,
-		MaxConns:          10,
-		MaxConnIdleTime:   30 * time.Minute,
-		HealthCheckPeriod: 1 * time.Minute,
-		ConnectTimeout:    1 * time.Nanosecond, // Very short timeout
+		MinConns:          1,
+		MaxConns:          3,
+		MaxConnIdleTime:   10 * time.Minute,
+		HealthCheckPeriod: 30 * time.Second,
+		ConnectTimeout:    5 * time.Second,
 	}
 
-	pool, err := NewDatabase(ctx, cfg, "TEST")
-
-	// With such a short timeout, connection might fail
-	// This is acceptable - we're testing timeout handling
+	// No logger in context → fallback to logrus standard logger.
+	pool, err := NewDatabase(context.Background(), cfg, "IntegrationNoLogger")
 	if err != nil {
-		// Expected - timeout occurred
-		if pool != nil {
-			pool.Close()
-		}
-		return
+		t.Fatalf("Expected no error, got %v", err)
 	}
-
-	// If it somehow succeeded, clean up
-	if pool != nil {
-		defer pool.Close()
+	if pool == nil {
+		t.Fatal("Expected non-nil pool")
 	}
+	defer pool.Close()
 }

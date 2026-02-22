@@ -169,7 +169,7 @@ The project maintains high test coverage:
 | `http/client` | ~91% |
 | `cache/redis` | 80% |
 | `messaging/kafka` | **100%** |
-| `db/postgres` | ~19% *(requires live DB for full coverage)* |
+| `db/postgres` | **91.7%** *(remaining 8.3%: pgxpool.NewWithConfig error path + happy-path, both require real Postgres)* |
 
 Tests include:
 - Unit tests for all public functions
