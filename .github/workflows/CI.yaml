@@ -7,6 +7,7 @@ on:
       - "**/*.go"
       - "go.mod"
       - "go.sum"
+      - ".github/workflows/CI.yaml"
   pull_request:
     paths:
       - "**/*.go"
@@ -44,6 +45,15 @@ jobs:
           key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-${{ matrix.go-version }}-
+
+      - name: install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: install staticcheck
+        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+
+      - name: install gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
 
       - name: Download dependencies
         run: go mod download
