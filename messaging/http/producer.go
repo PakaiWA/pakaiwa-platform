@@ -23,26 +23,26 @@ import (
 	"time"
 
 	"github.com/PakaiWA/pakaiwa-platform/messaging/producer"
-	"github.com/sirupsen/logrus"
+	"github.com/PakaiWA/pakaiwa-platform/observability/logging/ctxmeta"
 )
 
 type HttpProducer struct {
 	client *http.Client
 	url    string
-	log    *logrus.Logger
 }
 
-func NewHttpProducer(url string, log *logrus.Logger) producer.MessageProducer {
+func NewHttpProducer(url string) producer.MessageProducer {
 	return &HttpProducer{
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
 		url: url,
-		log: log,
 	}
 }
 
 func (h *HttpProducer) Send(ctx context.Context, topic string, key []byte, clientJID []byte, value []byte) error {
+	log := ctxmeta.Logger(ctx).WithField("device_id", string(clientJID))
+
 	req, err := http.NewRequestWithContext(ctx, "POST", h.url, bytes.NewBuffer(value))
 	if err != nil {
 		return err
@@ -55,7 +55,7 @@ func (h *HttpProducer) Send(ctx context.Context, topic string, key []byte, clien
 
 	resp, err := h.client.Do(req)
 	if err != nil {
-		h.log.WithError(err).Error("failed to send http message")
+		log.WithError(err).Error("failed to send http message")
 		return err
 	}
 	defer func() {
@@ -64,7 +64,7 @@ func (h *HttpProducer) Send(ctx context.Context, topic string, key []byte, clien
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		err = fmt.Errorf("http producer returned status: %d", resp.StatusCode)
-		h.log.WithError(err).Error("failed to send http message")
+		log.WithError(err).Error("failed to send http message")
 		return err
 	}
 
