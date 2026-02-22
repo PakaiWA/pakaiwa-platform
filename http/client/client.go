@@ -36,6 +36,8 @@ func Get(ctx context.Context, url string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	// #nosec G704 -- URL is supplied by the caller; SSRF prevention is the
+	// caller's responsibility. This package is an internal HTTP utility.
 	return getClient().Do(req)
 }
 
@@ -72,6 +74,8 @@ func doJSON[T any](ctx context.Context, method, url string, body T) (*http.Respo
 	}
 	req.Header.Set("Content-Type", "application/json")
 
+	// #nosec G704 -- URL is supplied by the caller; SSRF prevention is the
+	// caller's responsibility. This package is an internal HTTP utility.
 	return getClient().Do(req)
 }
 

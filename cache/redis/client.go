@@ -24,7 +24,7 @@ import (
 
 type Config struct {
 	Addr         string
-	Password     string
+	Password     string `json:"-"` // never serialise; prevents accidental secret exposure
 	DB           int
 	DialTimeout  time.Duration
 	ReadTimeout  time.Duration

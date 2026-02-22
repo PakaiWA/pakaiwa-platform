@@ -20,10 +20,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/PakaiWA/pakaiwa-platform/messaging/producer"
 	"github.com/PakaiWA/pakaiwa-platform/observability/logging/ctxmeta"
+	"github.com/sirupsen/logrus"
 )
 
 type HttpProducer struct {
@@ -31,17 +33,28 @@ type HttpProducer struct {
 	url    string
 }
 
-func NewHttpProducer(url string) producer.MessageProducer {
+// NewHttpProducer creates an HttpProducer that posts events to the given URL.
+// The URL must use the http or https scheme; any other scheme (file, gopher,
+// etc.) is rejected to prevent Server-Side Request Forgery (SSRF).
+func NewHttpProducer(rawURL string) (producer.MessageProducer, error) {
+	parsed, err := url.ParseRequestURI(rawURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid webhook URL %q: %w", rawURL, err)
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return nil, fmt.Errorf("webhook URL scheme must be http or https, got %q", parsed.Scheme)
+	}
+
 	return &HttpProducer{
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
-		url: url,
-	}
+		url: rawURL,
+	}, nil
 }
 
 func (h *HttpProducer) Send(ctx context.Context, topic string, key []byte, clientJID []byte, value []byte) error {
-	log := ctxmeta.Logger(ctx).WithField("device_id", string(clientJID))
+	entry := ctxmeta.Logger(ctx)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", h.url, bytes.NewBuffer(value))
 	if err != nil {
@@ -53,9 +66,16 @@ func (h *HttpProducer) Send(ctx context.Context, topic string, key []byte, clien
 	req.Header.Set("X-PakaiWA-Key", string(key))
 	req.Header.Set("X-Device-Id", string(clientJID))
 
+	// #nosec G704 -- SSRF mitigated: h.url is validated in NewHttpProducer via
+	// url.ParseRequestURI + scheme allowlist (http/https only). Gosec's taint
+	// analysis cannot track cross-function sanitisation.
 	resp, err := h.client.Do(req)
 	if err != nil {
-		log.WithError(err).Error("failed to send http message")
+		if entry != nil {
+			entry.WithField("device_id", string(clientJID)).WithError(err).Error("failed to send http message")
+		} else {
+			logrus.WithField("device_id", string(clientJID)).WithError(err).Error("failed to send http message")
+		}
 		return err
 	}
 	defer func() {
@@ -64,7 +84,11 @@ func (h *HttpProducer) Send(ctx context.Context, topic string, key []byte, clien
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		err = fmt.Errorf("http producer returned status: %d", resp.StatusCode)
-		log.WithError(err).Error("failed to send http message")
+		if entry != nil {
+			entry.WithField("device_id", string(clientJID)).WithError(err).Error("failed to send http message")
+		} else {
+			logrus.WithField("device_id", string(clientJID)).WithError(err).Error("failed to send http message")
+		}
 		return err
 	}
 

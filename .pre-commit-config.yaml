@@ -47,8 +47,8 @@ repos:
         language: system
         pass_filenames: false
 
-      # - id: gosec
-      #   name: gosec (security analyzer)
-      #   entry: gosec ./...
-      #   language: system
-      #   pass_filenames: false
+      - id: gosec
+        name: gosec (security analyzer)
+        entry: gosec ./...
+        language: system
+        pass_filenames: false
