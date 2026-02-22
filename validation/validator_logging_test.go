@@ -40,7 +40,7 @@ func TestGet40Space(t *testing.T) {
 }
 
 func TestTraceIDFromContext_WithTraceID(t *testing.T) {
-	ctx := context.WithValue(context.Background(), "trace_id", "test-trace-123")
+	ctx := ctxmeta.WithTraceID(context.Background(), "test-trace-123")
 
 	result := TraceIDFromContext(ctx)
 
@@ -60,7 +60,7 @@ func TestTraceIDFromContext_WithoutTraceID(t *testing.T) {
 }
 
 func TestTraceIDFromContext_WithEmptyTraceID(t *testing.T) {
-	ctx := context.WithValue(context.Background(), "trace_id", "")
+	ctx := ctxmeta.WithTraceID(context.Background(), "")
 
 	result := TraceIDFromContext(ctx)
 
@@ -71,7 +71,7 @@ func TestTraceIDFromContext_WithEmptyTraceID(t *testing.T) {
 }
 
 func TestTraceIDFromContext_WithWrongType(t *testing.T) {
-	ctx := context.WithValue(context.Background(), "trace_id", 12345) // int instead of string
+	ctx := context.WithValue(context.Background(), ctxmeta.TraceIDKey, 12345) // int instead of string
 
 	result := TraceIDFromContext(ctx)
 

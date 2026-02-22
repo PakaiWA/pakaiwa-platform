@@ -62,7 +62,7 @@ func LogValidationErrors(ctx context.Context, err error, data ...string) {
 }
 
 func TraceIDFromContext(ctx context.Context) string {
-	if v, ok := ctx.Value("trace_id").(string); ok && v != "" {
+	if v, ok := ctx.Value(ctxmeta.TraceIDKey).(string); ok && v != "" {
 		return v
 	}
 	return Get40Space()

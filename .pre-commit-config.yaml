@@ -35,17 +35,17 @@ repos:
         language: system
         pass_filenames: false
 
-      # - id: govulncheck
-      #   name: govulncheck (Go vulnerability scan)
-      #   entry: govulncheck ./...
-      #   language: system
-      #   pass_filenames: false
+      - id: govulncheck
+        name: govulncheck (Go vulnerability scan)
+        entry: govulncheck ./...
+        language: system
+        pass_filenames: false
 
-      # - id: staticcheck
-      #   name: staticcheck (advanced linter)
-      #   entry: staticcheck ./...
-      #   language: system
-      #   pass_filenames: false
+      - id: staticcheck
+        name: staticcheck (advanced linter)
+        entry: staticcheck ./...
+        language: system
+        pass_filenames: false
 
       # - id: gosec
       #   name: gosec (security analyzer)
