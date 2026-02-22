@@ -56,7 +56,7 @@ func main() {
     }
     
     ctx := context.Background()
-    pool := postgres.NewDatabase(ctx, log, cfg)
+    pool := postgres.NewDatabase(ctx, cfg, "TEST")
     defer pool.Close()
     
     // Use pool for database operations

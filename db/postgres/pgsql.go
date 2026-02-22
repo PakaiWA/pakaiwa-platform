@@ -19,12 +19,14 @@ import (
 	"context"
 	"time"
 
+	"github.com/PakaiWA/pakaiwa-platform/observability/logging/ctxmeta"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/sirupsen/logrus"
 )
 
-func NewDatabase(ctx context.Context, log *logrus.Logger, cfg Config) (*pgxpool.Pool, error) {
-	log.Info("Connecting to database...")
+func NewDatabase(ctx context.Context, cfg Config, module string) (*pgxpool.Pool, error) {
+
+	log := ctxmeta.Logger(ctx).WithField("module", module)
+
 	pgxCfg, err := pgxpool.ParseConfig(cfg.DSN)
 	if err != nil {
 		return nil, err

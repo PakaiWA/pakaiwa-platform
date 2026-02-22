@@ -21,12 +21,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PakaiWA/pakaiwa-platform/observability/logging/ctxmeta"
+	logger "github.com/PakaiWA/pakaiwa-platform/observability/logging/logrus"
 	"github.com/sirupsen/logrus"
 )
 
 func TestNewDatabase_InvalidDSN(t *testing.T) {
-	log := logrus.New()
-	log.SetOutput(os.Stdout)
+	log := logger.NewLogger(logrus.InfoLevel)
+	logEntry := log.WithField("component", "psql-test")
+	ctx := ctxmeta.WithLogger(context.Background(), logEntry)
 
 	cfg := Config{
 		DSN:               "invalid-dsn",
@@ -37,8 +40,7 @@ func TestNewDatabase_InvalidDSN(t *testing.T) {
 		ConnectTimeout:    5 * time.Second,
 	}
 
-	ctx := context.Background()
-	pool, err := NewDatabase(ctx, log, cfg)
+	pool, err := NewDatabase(ctx, cfg, "TEST")
 
 	if err == nil {
 		if pool != nil {
@@ -64,8 +66,9 @@ func TestNewDatabase_DSNParsingErrors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			log := logrus.New()
-			log.SetOutput(os.Stdout)
+			log := logger.NewLogger(logrus.InfoLevel)
+			logEntry := log.WithField("component", "psql-test")
+			ctx := ctxmeta.WithLogger(context.Background(), logEntry)
 
 			cfg := Config{
 				DSN:               tt.dsn,
@@ -76,8 +79,7 @@ func TestNewDatabase_DSNParsingErrors(t *testing.T) {
 				ConnectTimeout:    5 * time.Second,
 			}
 
-			ctx := context.Background()
-			pool, err := NewDatabase(ctx, log, cfg)
+			pool, err := NewDatabase(ctx, cfg, "TEST")
 
 			// Clean up if pool was somehow created
 			if pool != nil {
@@ -98,10 +100,9 @@ func TestNewDatabase_DSNParsingErrors(t *testing.T) {
 }
 
 func TestNewDatabase_ConfigurationApplied(t *testing.T) {
-	// This test verifies that configuration values are properly set
-	// We test with an invalid DSN that will fail at parsing stage
-	log := logrus.New()
-	log.SetOutput(os.Stdout)
+	log := logger.NewLogger(logrus.InfoLevel)
+	logEntry := log.WithField("component", "psql-test")
+	ctx := ctxmeta.WithLogger(context.Background(), logEntry)
 
 	cfg := Config{
 		DSN:               "invalid",
@@ -112,8 +113,7 @@ func TestNewDatabase_ConfigurationApplied(t *testing.T) {
 		ConnectTimeout:    10 * time.Second,
 	}
 
-	ctx := context.Background()
-	pool, err := NewDatabase(ctx, log, cfg)
+	pool, err := NewDatabase(ctx, cfg, "TEST")
 
 	if pool != nil {
 		pool.Close()
@@ -132,8 +132,10 @@ func TestNewDatabase_ValidConfig(t *testing.T) {
 		t.Skip("Skipping database test: TEST_DATABASE_URL not set")
 	}
 
-	log := logrus.New()
+	log := logger.NewLogger(logrus.InfoLevel)
 	log.SetOutput(os.Stdout)
+	logEntry := log.WithField("component", "psql-test")
+	ctx := ctxmeta.WithLogger(context.Background(), logEntry)
 
 	cfg := Config{
 		DSN:               dsn,
@@ -144,8 +146,7 @@ func TestNewDatabase_ValidConfig(t *testing.T) {
 		ConnectTimeout:    5 * time.Second,
 	}
 
-	ctx := context.Background()
-	pool, err := NewDatabase(ctx, log, cfg)
+	pool, err := NewDatabase(ctx, cfg, "TEST")
 
 	if err != nil {
 		t.Fatalf("Failed to create database pool: %v", err)
@@ -191,8 +192,10 @@ func TestNewDatabase_ContextTimeout(t *testing.T) {
 		t.Skip("Skipping database test: TEST_DATABASE_URL not set")
 	}
 
-	log := logrus.New()
+	log := logger.NewLogger(logrus.InfoLevel)
 	log.SetOutput(os.Stdout)
+	logEntry := log.WithField("component", "psql-test")
+	ctx := ctxmeta.WithLogger(context.Background(), logEntry)
 
 	cfg := Config{
 		DSN:               dsn,
@@ -203,8 +206,7 @@ func TestNewDatabase_ContextTimeout(t *testing.T) {
 		ConnectTimeout:    1 * time.Nanosecond, // Very short timeout
 	}
 
-	ctx := context.Background()
-	pool, err := NewDatabase(ctx, log, cfg)
+	pool, err := NewDatabase(ctx, cfg, "TEST")
 
 	// With such a short timeout, connection might fail
 	// This is acceptable - we're testing timeout handling
