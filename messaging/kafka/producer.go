@@ -118,45 +118,56 @@ func StartProducerPollLoop(
 	ctx context.Context,
 	producer producer.MessageProducer,
 	log *logrus.Logger,
+	module string,
 ) {
 	kp, ok := producer.(*KafkaProducer)
 	if !ok {
-		log.Debug("Not a Kafka producer, skipping poll loop")
+		log.WithField("module", module).
+			Debug("Not a Kafka producer, skipping poll loop")
 		return
 	}
 
 	go func() {
-		log.Info("Kafka producer poll loop started")
+		log.WithField("module", module).
+			Info("Kafka producer poll loop started")
 
 		for {
 			select {
 			case <-ctx.Done():
-				log.Info("Kafka producer poll loop stopping")
+				log.WithField("module", module).
+					Info("Kafka producer poll loop stopping")
 				return
 
 			case ev := <-kp.Events():
 				switch e := ev.(type) {
 
 				case *kafka.Message:
+					fields := logrus.Fields{
+						"topic":     safeTopic(e.TopicPartition.Topic),
+						"partition": e.TopicPartition.Partition,
+						"offset":    e.TopicPartition.Offset,
+						"module":    module,
+						"event":     "kafka_delivery_report",
+					}
+
+					// ambil key jika ada
+					if len(e.Key) > 0 {
+						fields["key"] = string(e.Key)
+					}
+
 					if e.TopicPartition.Error != nil {
-						log.WithFields(logrus.Fields{
-							"topic":     *e.TopicPartition.Topic,
-							"partition": e.TopicPartition.Partition,
-							"offset":    e.TopicPartition.Offset,
-							"module":    "Kafka",
-						}).WithError(e.TopicPartition.Error).
+						log.WithFields(fields).
+							WithError(e.TopicPartition.Error).
 							Error("Kafka delivery failed")
 					} else {
-						log.WithFields(logrus.Fields{
-							"topic":     *e.TopicPartition.Topic,
-							"partition": e.TopicPartition.Partition,
-							"offset":    e.TopicPartition.Offset,
-							"module":    "Kafka",
-						}).Debug("Kafka message delivered")
+						log.WithFields(fields).
+							Debug("Kafka message delivered")
 					}
 
 				case kafka.Error:
-					log.WithError(e).Error("Kafka error")
+					log.WithField("module", module).
+						WithError(e).
+						Error("Kafka error")
 
 				default:
 					// abaikan event lain
@@ -164,4 +175,11 @@ func StartProducerPollLoop(
 			}
 		}
 	}()
+}
+
+func safeTopic(topic *string) string {
+	if topic == nil {
+		return ""
+	}
+	return *topic
 }
