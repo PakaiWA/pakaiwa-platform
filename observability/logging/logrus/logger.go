@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -41,10 +42,8 @@ const fixedRFC3339Nano = "2006-01-02T15:04:05.000Z07:00"
 
 func NewLogger(logLevel logrus.Level) *logrus.Logger {
 	l := logrus.New()
+	l.SetReportCaller(true)
 	l.SetLevel(logLevel)
-	l.SetFormatter(&logrus.JSONFormatter{
-		TimestampFormat: fixedRFC3339Nano,
-	})
 
 	l.SetFormatter(&OrderedJSONFormatter{
 		PadLevelTo:      5,
@@ -60,6 +59,7 @@ func NewLogger(logLevel logrus.Level) *logrus.Logger {
 }
 
 func (f *OrderedJSONFormatter) Format(e *logrus.Entry) ([]byte, error) {
+
 	padTo := f.PadLevelTo
 	if padTo <= 0 {
 		padTo = 5
@@ -94,6 +94,12 @@ func (f *OrderedJSONFormatter) Format(e *logrus.Entry) ([]byte, error) {
 		writeKV(buf, traceKey, trace, false, f.EscapeHTML)
 	}
 	writeKV(buf, msgKey, e.Message, false, f.EscapeHTML)
+
+	// caller: file:line
+	if e.Caller != nil {
+		caller := fmt.Sprintf("%s:%d", filepath.Base(e.Caller.File), e.Caller.Line)
+		writeKV(buf, "caller", caller, false, f.EscapeHTML)
+	}
 
 	if len(e.Data) > 0 {
 		keys := make([]string, 0, len(e.Data))
