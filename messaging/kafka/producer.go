@@ -21,16 +21,17 @@ import (
 
 	"github.com/PakaiWA/pakaiwa-platform/messaging/event"
 	"github.com/PakaiWA/pakaiwa-platform/messaging/producer"
+	"github.com/PakaiWA/pakaiwa-platform/observability/logging/ctxmeta"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
 )
 
 type KafkaProducer struct {
-	p   *kafka.Producer
-	log *logrus.Logger
+	p *kafka.Producer
 }
 
-func NewKafkaProducer(cfg *kafka.ConfigMap, log *logrus.Logger) producer.MessageProducer {
+func NewKafkaProducer(cfg *kafka.ConfigMap) producer.MessageProducer {
+	log := ctxmeta.Logger(context.Background())
 	p, err := kafka.NewProducer(cfg)
 	if err != nil {
 		log.WithError(err).Error("failed to create kafka producer")
@@ -38,12 +39,13 @@ func NewKafkaProducer(cfg *kafka.ConfigMap, log *logrus.Logger) producer.Message
 	}
 
 	return &KafkaProducer{
-		p:   p,
-		log: log,
+		p: p,
 	}
 }
 
-func (k *KafkaProducer) Send(_ context.Context, topic string, key []byte, clientJID []byte, value []byte) error {
+func (k *KafkaProducer) Send(ctx context.Context, topic string, key []byte, clientJID []byte, value []byte) error {
+	log := ctxmeta.Logger(ctx).WithField("device_id", clientJID)
+
 	msg := &kafka.Message{
 		TopicPartition: kafka.TopicPartition{
 			Topic:     &topic,
@@ -67,7 +69,7 @@ func (k *KafkaProducer) Send(_ context.Context, topic string, key []byte, client
 			// atau handle di level atas.
 			return err
 		}
-		k.log.WithError(err).Error("failed to produce kafka message")
+		log.WithError(err).Error("failed to produce kafka message")
 		return err
 	}
 
@@ -96,9 +98,10 @@ type Producer[T event.Event] struct {
 }
 
 func (p *Producer[T]) Send(ctx context.Context, evt T, clientJID string) error {
+	log := ctxmeta.Logger(ctx).WithField("device_id", clientJID)
 	value, err := json.Marshal(evt)
 	if err != nil {
-		p.Log.WithError(err).Error("failed to marshal event")
+		log.WithError(err).Error("failed to marshal event")
 		return err
 	}
 
