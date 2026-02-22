@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go-version: ['1.25.7', '1.25']
+        go-version: ["1.25.7", "1.25"]
 
     steps:
       - name: Checkout code
@@ -64,14 +64,12 @@ jobs:
             go test -v ./...
           fi
 
-      - name: Upload coverage to Codecov
+      - name: Upload results to Codecov
         if: matrix.go-version == '1.25.7'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: ./coverage.out
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   build:
     runs-on: ubuntu-latest
