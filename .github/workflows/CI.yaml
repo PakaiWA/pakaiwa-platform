@@ -123,14 +123,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Deteksi perubahan non-test
+      - name: Deteksi perubahan signifikan (non-test & non-yaml)
         id: changes
         run: |
           git fetch origin ${{ github.base_ref }} --quiet || true
 
           BASE_REF="${{ github.base_ref }}"
           if [ -z "$BASE_REF" ]; then
-            # fallback untuk push langsung ke branch (bukan PR)
             BASE_REF="HEAD~1"
           fi
 
@@ -138,17 +137,17 @@ jobs:
           echo "Changed files:"
           echo "$CHANGED_FILES"
 
-          NON_TEST_COUNT=$(echo "$CHANGED_FILES" | grep -vE '_test\.go$' | wc -l | tr -d ' ')
-          if [ "$NON_TEST_COUNT" -eq 0 ]; then
-            echo "only_tests=true" >> "$GITHUB_OUTPUT"
-            echo "Semua perubahan hanya *_test.go, create-tag akan di-skip."
+          SIGNIFICANT_COUNT=$(echo "$CHANGED_FILES" | grep -vE '(_test\.go$|\.ya?ml$)' | wc -l | tr -d ' ')
+          if [ "$SIGNIFICANT_COUNT" -eq 0 ]; then
+            echo "only_non_significant=true" >> "$GITHUB_OUTPUT"
+            echo "Semua perubahan hanya *_test.go dan/atau *.yaml, create-tag akan di-skip."
           else
-            echo "only_tests=false" >> "$GITHUB_OUTPUT"
+            echo "only_non_significant=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Hitung versi tag (WIB)
         id: ver
-        if: steps.changes.outputs.only_tests == 'false'
+        if: steps.changes.outputs.only_non_significant == 'false'
         run: |
           sudo ln -sf /usr/share/zoneinfo/$TZ /etc/localtime
           yy=$(date +%y)
@@ -163,7 +162,7 @@ jobs:
 
       - name: Cek apakah tag sudah ada
         id: check
-        if: steps.changes.outputs.only_tests == 'false'
+        if: steps.changes.outputs.only_non_significant == 'false'
         run: |
           git fetch --tags --quiet
           if git rev-parse -q --verify "refs/tags/${{ steps.ver.outputs.tag }}" >/dev/null; then
@@ -174,7 +173,7 @@ jobs:
           fi
 
       - name: Buat dan push tag
-        if: steps.changes.outputs.only_tests == 'false' && steps.check.outputs.exists == 'false'
+        if: steps.changes.outputs.only_non_significant == 'false' && steps.check.outputs.exists == 'false'
         run: |
           tag="${{ steps.ver.outputs.tag }}"
           git config user.name "github-actions[bot]"
