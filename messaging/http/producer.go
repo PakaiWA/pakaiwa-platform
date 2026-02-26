@@ -19,12 +19,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/PakaiWA/pakaiwa-platform/messaging/producer"
 	"github.com/PakaiWA/pakaiwa-platform/observability/logging/ctxmeta"
+	logger "github.com/PakaiWA/pakaiwa-platform/observability/logging/logrus"
 	"github.com/sirupsen/logrus"
 )
 
@@ -54,43 +56,67 @@ func NewHttpProducer(rawURL string) (producer.MessageProducer, error) {
 }
 
 func (h *HttpProducer) Send(ctx context.Context, topic string, key []byte, clientJID []byte, value []byte) error {
-	entry := ctxmeta.Logger(ctx)
+	log := ctxmeta.Logger(ctx)
+	if log == nil {
+		base := logger.NewLogger(logrus.InfoLevel)
+		log = logrus.NewEntry(base)
+	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", h.url, bytes.NewBuffer(value))
+	if topic == "" {
+		return fmt.Errorf("topic must not be empty")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.url, bytes.NewReader(value))
 	if err != nil {
 		return err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-PakaiWA-Topic", topic)
-	req.Header.Set("X-PakaiWA-Key", string(key))
-	req.Header.Set("X-Device-Id", string(clientJID))
 
-	// #nosec G704 -- SSRF mitigated: h.url is validated in NewHttpProducer via
-	// url.ParseRequestURI + scheme allowlist (http/https only). Gosec's taint
-	// analysis cannot track cross-function sanitisation.
+	if len(key) > 0 {
+		req.Header.Set("X-PakaiWA-Key", string(key))
+	}
+
+	if len(clientJID) > 0 {
+		req.Header.Set("X-Device-ID", string(clientJID))
+	}
+
+	start := time.Now()
+
 	resp, err := h.client.Do(req)
 	if err != nil {
-		if entry != nil {
-			entry.WithField("device_id", string(clientJID)).WithError(err).Error("failed to send http message")
-		} else {
-			logrus.WithField("device_id", string(clientJID)).WithError(err).Error("failed to send http message")
-		}
+		log.WithFields(logrus.Fields{
+			"device_id": string(clientJID),
+			"event":     topic,
+			"latency":   time.Since(start).String(),
+		}).WithError(err).Error("failed to send http message")
 		return err
 	}
 	defer func() {
-		_ = resp.Body.Close() //nolint:errcheck
+		_, _ = io.Copy(io.Discard, resp.Body) // drain body for connection reuse
+		_ = resp.Body.Close()
 	}()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		err = fmt.Errorf("http producer returned status: %d", resp.StatusCode)
-		if entry != nil {
-			entry.WithField("device_id", string(clientJID)).WithError(err).Error("failed to send http message")
-		} else {
-			logrus.WithField("device_id", string(clientJID)).WithError(err).Error("failed to send http message")
-		}
+		err = fmt.Errorf("http producer returned status=%d", resp.StatusCode)
+
+		log.WithFields(logrus.Fields{
+			"device_id": string(clientJID),
+			"event":     topic,
+			"status":    resp.StatusCode,
+			"latency":   time.Since(start).String(),
+		}).WithError(err).Error("http producer non-2xx response")
+
 		return err
 	}
+
+	log.WithFields(logrus.Fields{
+		"device_id": string(clientJID),
+		"event":     topic,
+		"status":    resp.StatusCode,
+		"latency":   time.Since(start).String(),
+	}).Debug("http message sent successfully")
 
 	return nil
 }
