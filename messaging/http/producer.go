@@ -84,6 +84,9 @@ func (h *HttpProducer) Send(ctx context.Context, topic string, key []byte, clien
 
 	start := time.Now()
 
+	// #nosec G704 -- SSRF mitigated: h.url is validated in NewHttpProducer via
+	// url.ParseRequestURI + scheme allowlist (http/https only). Gosec's taint
+	// analysis cannot track cross-function sanitisation.
 	resp, err := h.client.Do(req)
 	if err != nil {
 		log.WithFields(logrus.Fields{
