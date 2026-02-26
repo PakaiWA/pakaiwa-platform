@@ -17,6 +17,7 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/PakaiWA/pakaiwa-platform/observability/logging/ctxmeta"
@@ -32,6 +33,20 @@ func NewDatabase(ctx context.Context, cfg Config, module string) (*pgxpool.Pool,
 		log = logrus.WithField("module", module)
 	}
 
+	// ===== Validate Config (fail-fast) =====
+	if cfg.MinConns > cfg.MaxConns {
+		return nil, fmt.Errorf("db config invalid: min_conns (%d) > max_conns (%d)", cfg.MinConns, cfg.MaxConns)
+	}
+
+	if cfg.MaxConnIdleTime <= 0 || cfg.MaxConnLifetime <= 0 {
+		return nil, fmt.Errorf("db config invalid: conn idle/lifetime must be > 0")
+	}
+
+	if cfg.ConnectTimeout <= 0 {
+		cfg.ConnectTimeout = 5 * time.Second
+	}
+
+	// ===== Parse pgx config =====
 	pgxCfg, err := pgxpool.ParseConfig(cfg.DSN)
 	if err != nil {
 		return nil, err
@@ -39,24 +54,43 @@ func NewDatabase(ctx context.Context, cfg Config, module string) (*pgxpool.Pool,
 
 	pgxCfg.MinConns = cfg.MinConns
 	pgxCfg.MaxConns = cfg.MaxConns
+	pgxCfg.MaxConnLifetime = cfg.MaxConnLifetime
 	pgxCfg.MaxConnIdleTime = cfg.MaxConnIdleTime
 	pgxCfg.HealthCheckPeriod = cfg.HealthCheckPeriod
 	pgxCfg.ConnConfig.ConnectTimeout = cfg.ConnectTimeout
 
+	// Optional: set application_name untuk observability PostgreSQL
+	if module != "" {
+		if pgxCfg.ConnConfig.RuntimeParams == nil {
+			pgxCfg.ConnConfig.RuntimeParams = map[string]string{}
+		}
+		pgxCfg.ConnConfig.RuntimeParams["application_name"] = module
+	}
+
+	// ===== Create Pool =====
 	start := time.Now()
 	pool, err := pgxpool.NewWithConfig(ctx, pgxCfg)
 	if err != nil {
 		return nil, err
 	}
-	log.WithField("duration", time.Since(start)).Debug("pgxpool initialized")
+	log.WithFields(logrus.Fields{
+		"min_conns": cfg.MinConns,
+		"max_conns": cfg.MaxConns,
+		"duration":  time.Since(start),
+	}).Info("pgxpool initialized")
 
-	pingCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	// ===== Ping (liveness check) =====
+	pingTimeout := max(cfg.ConnectTimeout, 3*time.Second)
+
+	pingCtx, cancel := context.WithTimeout(ctx, pingTimeout)
 	defer cancel()
+
 	if err := pool.Ping(pingCtx); err != nil {
 		log.WithError(err).Error("database ping failed")
 		pool.Close()
 		return nil, err
 	}
 
+	log.Info("database connection is healthy")
 	return pool, nil
 }

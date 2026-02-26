@@ -24,6 +24,7 @@ type Config struct {
 	MinConns          int32
 	MaxConns          int32
 	MaxConnIdleTime   time.Duration
+	MaxConnLifetime   time.Duration
 	HealthCheckPeriod time.Duration
 	ConnectTimeout    time.Duration
 }
