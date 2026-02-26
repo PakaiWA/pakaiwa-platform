@@ -257,12 +257,12 @@ func TestNewDatabase_AllConfigFieldsApplied(t *testing.T) {
 	}
 }
 
-// ─── Integration tests (skipped unless TEST_DATABASE_URL is set) ──────────────
+// ─── Integration tests (skipped unless DATABASE_URL is set) ────────────────────
 
 func TestNewDatabase_Happy_Integration(t *testing.T) {
-	dsn := os.Getenv("TEST_DATABASE_URL")
+	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		t.Skip("Skipping: TEST_DATABASE_URL not set")
+		t.Skip("Skipping: DATABASE_URL not set")
 	}
 
 	cfg := Config{
@@ -307,9 +307,9 @@ func TestNewDatabase_Happy_Integration(t *testing.T) {
 // TestNewDatabase_Integration_NoLogger verifies NewDatabase with a real DB
 // and no logger in context (exercises the logrus fallback branch).
 func TestNewDatabase_Integration_NoLogger(t *testing.T) {
-	dsn := os.Getenv("TEST_DATABASE_URL")
+	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		t.Skip("Skipping: TEST_DATABASE_URL not set")
+		t.Skip("Skipping: DATABASE_URL not set")
 	}
 
 	cfg := Config{
