@@ -27,7 +27,7 @@ import (
 )
 
 func LogValidationErrors(ctx context.Context, err error, data ...string) {
-	log := ctxmeta.Logger(ctx)
+	log := ctxmeta.LoggerHTTP(ctx)
 	if log == nil {
 		return // atau fallback logger infra jika mau
 	}

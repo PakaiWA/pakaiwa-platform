@@ -19,7 +19,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 
@@ -29,7 +32,6 @@ import (
 const moduleKey = "module"
 
 type OrderedJSONFormatter struct {
-	PadLevelTo      int
 	TimestampFormat string // default RFC3339Nano
 	LevelKey        string // default "level"
 	TimeKey         string // default "time"
@@ -38,15 +40,29 @@ type OrderedJSONFormatter struct {
 	EscapeHTML      bool
 }
 
+type Loggers struct {
+	App   *logrus.Entry
+	DB    *logrus.Entry
+	HTTP  *logrus.Entry
+	Kafka *logrus.Entry
+	WA    *logrus.Entry
+}
+
+type LogConfig struct {
+	Level      logrus.Level
+	DBLevel    logrus.Level
+	HTTPLevel  logrus.Level
+	KafkaLevel logrus.Level
+	WALevel    logrus.Level
+}
+
 const fixedRFC3339Nano = "2006-01-02T15:04:05.000Z07:00"
 
 func NewLogger(logLevel logrus.Level) *logrus.Logger {
 	l := logrus.New()
-	l.SetReportCaller(true)
 	l.SetLevel(logLevel)
 
 	l.SetFormatter(&OrderedJSONFormatter{
-		PadLevelTo:      5,
 		TimestampFormat: fixedRFC3339Nano,
 		LevelKey:        "level",
 		TimeKey:         "time",
@@ -58,12 +74,43 @@ func NewLogger(logLevel logrus.Level) *logrus.Logger {
 	return l
 }
 
-func (f *OrderedJSONFormatter) Format(e *logrus.Entry) ([]byte, error) {
+func buildLogger(level logrus.Level, formatter logrus.Formatter, output io.Writer) *logrus.Logger {
+	l := logrus.New()
+	l.SetFormatter(formatter)
+	l.SetOutput(output)
+	l.SetLevel(level)
+	return l
+}
 
-	padTo := f.PadLevelTo
-	if padTo <= 0 {
-		padTo = 5
+func NewLoggers(cfg LogConfig) *Loggers {
+	// Shared formatter & output
+	formatter := &OrderedJSONFormatter{
+		TimestampFormat: fixedRFC3339Nano,
+		LevelKey:        "level",
+		TimeKey:         "time",
+		MsgKey:          "msg",
+		TraceIDKey:      "trace_id",
+		EscapeHTML:      false,
 	}
+
+	var output io.Writer = os.Stdout
+
+	appLogger := buildLogger(cfg.Level, formatter, output)
+	dbLogger := buildLogger(cfg.DBLevel, formatter, output)
+	waLogger := buildLogger(cfg.WALevel, formatter, output)
+	httpLogger := buildLogger(cfg.HTTPLevel, formatter, output)
+	kafkaLogger := buildLogger(cfg.KafkaLevel, formatter, output)
+
+	return &Loggers{
+		App:   logrus.NewEntry(appLogger).WithField("scope", "app"),
+		DB:    logrus.NewEntry(dbLogger).WithField("scope", "db"),
+		HTTP:  logrus.NewEntry(httpLogger).WithField("scope", "http"),
+		Kafka: logrus.NewEntry(kafkaLogger).WithField("scope", "kafka"),
+		WA:    logrus.NewEntry(waLogger).WithField("scope", "wa"),
+	}
+}
+
+func (f *OrderedJSONFormatter) Format(e *logrus.Entry) ([]byte, error) {
 	tsFmt := f.TimestampFormat
 	if tsFmt == "" {
 		tsFmt = fixedRFC3339Nano
@@ -75,9 +122,6 @@ func (f *OrderedJSONFormatter) Format(e *logrus.Entry) ([]byte, error) {
 	traceKey := keyOr(f.TraceIDKey, "trace_id")
 
 	lvl := normalizeLevel(e.Level)
-	if n := padTo - len(lvl); n > 0 {
-		lvl = lvl + strings.Repeat(" ", n)
-	}
 
 	trace := ""
 	if v, ok := e.Data[traceKey]; ok {
@@ -88,18 +132,16 @@ func (f *OrderedJSONFormatter) Format(e *logrus.Entry) ([]byte, error) {
 	buf.Grow(256)
 	buf.WriteByte('{')
 
-	writeKV(buf, levelKey, lvl, true, f.EscapeHTML)
-	writeKV(buf, timeKey, e.Time.Format(tsFmt), false, f.EscapeHTML)
+	writeKV(buf, timeKey, e.Time.Format(tsFmt), true, f.EscapeHTML)
+	writeKV(buf, levelKey, lvl, false, f.EscapeHTML)
 	if trace != "" {
 		writeKV(buf, traceKey, trace, false, f.EscapeHTML)
 	}
 	writeKV(buf, msgKey, e.Message, false, f.EscapeHTML)
 
 	// caller: file:line
-	if e.Caller != nil {
-		caller := fmt.Sprintf("%s:%d", filepath.Base(e.Caller.File), e.Caller.Line)
-		writeKV(buf, "caller", caller, false, f.EscapeHTML)
-	}
+	caller := resolveCaller()
+	writeKV(buf, "caller", caller, false, f.EscapeHTML)
 
 	if len(e.Data) > 0 {
 		keys := make([]string, 0, len(e.Data))
@@ -173,6 +215,7 @@ func writeKey(buf *bytes.Buffer, k string, escapeHTML bool) {
 	writeJSONString(buf, k, escapeHTML)
 }
 
+// mempengaruhi urutan log
 func writeKV(buf *bytes.Buffer, k, v string, first bool, escapeHTML bool) {
 	if !first {
 		buf.WriteByte(',')
@@ -215,4 +258,33 @@ func normalizeLevel(level logrus.Level) string {
 	default:
 		return level.String()
 	}
+}
+
+func resolveCaller() string {
+	// skip chain:
+	// 0 = resolveCaller
+	// 1 = Format()
+	// 2 = logrus internal
+	// 3 = adapter / logger wrapper
+	// 4 = business code
+	for i := 4; i < 10; i++ {
+		_, file, line, ok := runtime.Caller(i)
+		if !ok {
+			continue
+		}
+
+		// skip file internal logrus
+		if strings.Contains(file, "sirupsen/logrus") {
+			continue
+		}
+
+		// skip formatter file
+		if strings.Contains(file, "logrus_adapter.go") {
+			continue
+		}
+
+		return fmt.Sprintf("%s:%d", filepath.Base(file), line)
+	}
+
+	return "unknown"
 }

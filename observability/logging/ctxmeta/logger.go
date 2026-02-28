@@ -128,3 +128,10 @@ func LoggerWA(ctx context.Context) *logrus.Entry {
 	}
 	return LoggerApp(ctx)
 }
+
+func WithHTTPLogger(ctx context.Context, log *logrus.Entry) context.Context {
+	if ctx == nil || log == nil {
+		return ctx
+	}
+	return context.WithValue(ctx, loggerHTTPKey, log)
+}

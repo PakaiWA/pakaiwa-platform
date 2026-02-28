@@ -27,10 +27,16 @@ import (
 
 func NewDatabase(ctx context.Context, cfg Config, module string) (*pgxpool.Pool, error) {
 	var log *logrus.Entry
-	if entry := ctxmeta.Logger(ctx); entry != nil {
-		log = entry.WithField("module", module)
+	if entry := ctxmeta.LoggerDB(ctx); entry != nil {
+		log = entry.WithField("component", "db_bootstrap").
+			WithField("module", module)
 	} else {
-		log = logrus.WithField("module", module)
+		// fallback aman (misalnya saat test)
+		base := logrus.New()
+		log = logrus.NewEntry(base).
+			WithField("scope", "db").
+			WithField("component", "db_bootstrap").
+			WithField("module", module)
 	}
 
 	// ===== Validate Config (fail-fast) =====
@@ -71,12 +77,17 @@ func NewDatabase(ctx context.Context, cfg Config, module string) (*pgxpool.Pool,
 	start := time.Now()
 	pool, err := pgxpool.NewWithConfig(ctx, pgxCfg)
 	if err != nil {
+		log.WithError(err).
+			WithField("event", "pgxpool_init_failed").
+			Error("failed to initialize pgxpool")
 		return nil, err
 	}
+
 	log.WithFields(logrus.Fields{
-		"min_conns": cfg.MinConns,
-		"max_conns": cfg.MaxConns,
-		"duration":  time.Since(start),
+		"event":       "pgxpool_initialized",
+		"min_conns":   cfg.MinConns,
+		"max_conns":   cfg.MaxConns,
+		"duration_ms": time.Since(start).Milliseconds(),
 	}).Info("pgxpool initialized")
 
 	// ===== Ping (liveness check) =====
@@ -86,11 +97,14 @@ func NewDatabase(ctx context.Context, cfg Config, module string) (*pgxpool.Pool,
 	defer cancel()
 
 	if err := pool.Ping(pingCtx); err != nil {
-		log.WithError(err).Error("database ping failed")
+		log.WithError(err).
+			WithField("event", "db_ping_failed").
+			Error("database ping failed")
 		pool.Close()
 		return nil, err
 	}
 
-	log.Info("database connection is healthy")
+	log.WithField("event", "db_ping_success").
+		Info("database connection is healthy")
 	return pool, nil
 }

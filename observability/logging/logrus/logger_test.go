@@ -65,7 +65,6 @@ func logEntryWith(level logrus.Level, msg string, fields logrus.Fields) *logrus.
 
 func TestFormat_ProducesValidJSON(t *testing.T) {
 	f := &OrderedJSONFormatter{
-		PadLevelTo:      5,
 		TimestampFormat: fixedRFC3339Nano,
 		LevelKey:        "level",
 		TimeKey:         "time",
@@ -87,7 +86,6 @@ func TestFormat_ProducesValidJSON(t *testing.T) {
 
 func TestFormat_ContainsRequiredKeys(t *testing.T) {
 	f := &OrderedJSONFormatter{
-		PadLevelTo:      5,
 		TimestampFormat: fixedRFC3339Nano,
 		LevelKey:        "level",
 		TimeKey:         "time",
@@ -193,7 +191,6 @@ func fmt_error(msg string) error { return testError{msg} }
 func TestFormat_DefaultPadLevelTo(t *testing.T) {
 	// PadLevelTo=0 should default to 5
 	f := &OrderedJSONFormatter{
-		PadLevelTo: 0,
 		LevelKey:   "level",
 		TimeKey:    "time",
 		MsgKey:     "msg",
