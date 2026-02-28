@@ -98,7 +98,7 @@ func TestLogValidationErrors_NilLogger(t *testing.T) {
 func TestLogValidationErrors_WithGenericError(t *testing.T) {
 	logger, hook := test.NewNullLogger()
 	entry := logrus.NewEntry(logger)
-	ctx := ctxmeta.WithLogger(context.Background(), entry)
+	ctx := ctxmeta.WithHTTPLogger(context.Background(), entry)
 
 	err := errors.New("generic error")
 
@@ -127,7 +127,7 @@ func TestLogValidationErrors_WithGenericError(t *testing.T) {
 func TestLogValidationErrors_WithValidationErrors(t *testing.T) {
 	logger, hook := test.NewNullLogger()
 	entry := logrus.NewEntry(logger)
-	ctx := ctxmeta.WithLogger(context.Background(), entry)
+	ctx := ctxmeta.WithHTTPLogger(context.Background(), entry)
 
 	// Create a validator and trigger validation error
 	v := NewValidator()
@@ -182,7 +182,7 @@ func TestLogValidationErrors_WithValidationErrors(t *testing.T) {
 func TestLogValidationErrors_WithDefaultMessage(t *testing.T) {
 	logger, hook := test.NewNullLogger()
 	entry := logrus.NewEntry(logger)
-	ctx := ctxmeta.WithLogger(context.Background(), entry)
+	ctx := ctxmeta.WithHTTPLogger(context.Background(), entry)
 
 	err := errors.New("test error")
 
@@ -204,7 +204,7 @@ func TestLogValidationErrors_WithDefaultMessage(t *testing.T) {
 func TestLogValidationErrors_WithMessageOnly(t *testing.T) {
 	logger, hook := test.NewNullLogger()
 	entry := logrus.NewEntry(logger)
-	ctx := ctxmeta.WithLogger(context.Background(), entry)
+	ctx := ctxmeta.WithHTTPLogger(context.Background(), entry)
 
 	err := errors.New("test error")
 
@@ -226,7 +226,7 @@ func TestLogValidationErrors_WithMessageOnly(t *testing.T) {
 func TestLogValidationErrors_WithMultipleValidationErrors(t *testing.T) {
 	logger, hook := test.NewNullLogger()
 	entry := logrus.NewEntry(logger)
-	ctx := ctxmeta.WithLogger(context.Background(), entry)
+	ctx := ctxmeta.WithHTTPLogger(context.Background(), entry)
 
 	v := NewValidator()
 
