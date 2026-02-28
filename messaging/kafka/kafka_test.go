@@ -215,7 +215,7 @@ func TestProducer_Send_MarshalError_NoLoggerNoLog(t *testing.T) {
 
 func TestStartProducerPollLoop_NonKafkaProducer(t *testing.T) {
 	mock := &mockProducer{}
-	l := logrus.New()
+	l := logrus.NewEntry(logrus.New())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -228,7 +228,7 @@ func TestStartProducerPollLoop_NonKafkaProducer(t *testing.T) {
 
 func TestStartProducerPollLoop_CancelledContext(t *testing.T) {
 	mock := &mockProducer{}
-	l := logrus.New()
+	l := logrus.NewEntry(logrus.New())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // already cancelled

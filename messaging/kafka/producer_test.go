@@ -183,7 +183,7 @@ func TestStartProducerPollLoop_KafkaProducer_CtxCancel(t *testing.T) {
 	kp := newTestKafkaProducer(t)
 	defer func() { _ = kp.Close() }()
 
-	l := logrus.New()
+	l := logrus.NewEntry(logrus.New())
 	ctx, cancel := context.WithCancel(context.Background())
 
 	StartProducerPollLoop(ctx, kp, l, "test-module")
@@ -204,7 +204,7 @@ func TestStartProducerPollLoop_KafkaProducer_MessageDelivered(t *testing.T) {
 	kp := newTestKafkaProducer(t)
 	// Do NOT defer Close here — we manage it manually below.
 
-	l := logrus.New()
+	l := logrus.NewEntry(logrus.New())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -232,7 +232,7 @@ func TestStartProducerPollLoop_KafkaProducer_MessageDelivered(t *testing.T) {
 func TestStartProducerPollLoop_KafkaProducer_MessageDelivered_NoKey(t *testing.T) {
 	kp := newTestKafkaProducer(t)
 
-	l := logrus.New()
+	l := logrus.NewEntry(logrus.New())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -257,7 +257,7 @@ func TestStartProducerPollLoop_KafkaProducer_MessageDelivered_NoKey(t *testing.T
 func TestStartProducerPollLoop_KafkaProducer_DeliveryError(t *testing.T) {
 	kp := newTestKafkaProducer(t)
 
-	l := logrus.New()
+	l := logrus.NewEntry(logrus.New())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -294,7 +294,7 @@ func TestStartProducerPollLoop_KafkaProducer_DeliveryError(t *testing.T) {
 func TestStartProducerPollLoop_KafkaProducer_DeliverySuccess(t *testing.T) {
 	kp := newTestKafkaProducer(t)
 
-	l := logrus.New()
+	l := logrus.NewEntry(logrus.New())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -329,7 +329,7 @@ func TestStartProducerPollLoop_KafkaProducer_DeliverySuccess(t *testing.T) {
 func TestStartProducerPollLoop_KafkaProducer_DeliverySuccess_NoKey(t *testing.T) {
 	kp := newTestKafkaProducer(t)
 
-	l := logrus.New()
+	l := logrus.NewEntry(logrus.New())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -362,7 +362,7 @@ func TestStartProducerPollLoop_KafkaProducer_DeliverySuccess_NoKey(t *testing.T)
 func TestStartProducerPollLoop_KafkaProducer_KafkaError(t *testing.T) {
 	kp := newTestKafkaProducer(t)
 
-	l := logrus.New()
+	l := logrus.NewEntry(logrus.New())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -388,7 +388,7 @@ func TestStartProducerPollLoop_KafkaProducer_KafkaError(t *testing.T) {
 func TestStartProducerPollLoop_KafkaProducer_DefaultCase(t *testing.T) {
 	kp := newTestKafkaProducer(t)
 
-	l := logrus.New()
+	l := logrus.NewEntry(logrus.New())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

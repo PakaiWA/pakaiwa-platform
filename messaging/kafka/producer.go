@@ -43,7 +43,7 @@ func NewKafkaProducer(cfg *kafka.ConfigMap) producer.MessageProducer {
 }
 
 func (k *KafkaProducer) Send(ctx context.Context, topic string, key []byte, clientJID []byte, value []byte) error {
-	entry := ctxmeta.Logger(ctx)
+	entry := ctxmeta.LoggerKafka(ctx)
 
 	msg := &kafka.Message{
 		TopicPartition: kafka.TopicPartition{
@@ -100,7 +100,7 @@ type Producer[T event.Event] struct {
 }
 
 func (p *Producer[T]) Send(ctx context.Context, evt T, clientJID string) error {
-	entry := ctxmeta.Logger(ctx)
+	entry := ctxmeta.LoggerKafka(ctx)
 	value, err := json.Marshal(evt)
 	if err != nil {
 		if entry != nil {
@@ -123,60 +123,63 @@ func (p *Producer[T]) Send(ctx context.Context, evt T, clientJID string) error {
 func StartProducerPollLoop(
 	ctx context.Context,
 	producer producer.MessageProducer,
-	log *logrus.Logger,
+	log *logrus.Entry,
 	module string,
 ) {
 	kp, ok := producer.(*KafkaProducer)
 	if !ok {
 		log.WithField("module", module).
-			Debug("Not a Kafka producer, skipping poll loop")
+			Debug("not a Kafka producer, skipping poll loop")
 		return
 	}
 
+	// inject module sekali saja
+	baseLog := log.WithField("module", module)
+
 	go func() {
-		log.WithField("module", module).
-			Info("Kafka producer poll loop started")
+		baseLog.Info("kafka producer poll loop started")
 
 		for {
 			select {
 			case <-ctx.Done():
-				log.WithField("module", module).
-					Info("Kafka producer poll loop stopping")
+				baseLog.Info("kafka producer poll loop stopping")
 				return
 
-			case ev := <-kp.Events():
+			case ev, ok := <-kp.Events():
+				if !ok {
+					baseLog.Warn("kafka events channel closed")
+					return
+				}
+
 				switch e := ev.(type) {
 
 				case *kafka.Message:
 					fields := logrus.Fields{
+						"event":     "kafka_delivery_report",
 						"topic":     safeTopic(e.TopicPartition.Topic),
 						"partition": e.TopicPartition.Partition,
 						"offset":    e.TopicPartition.Offset,
-						"module":    module,
-						"event":     "kafka_delivery_report",
 					}
 
-					// ambil key jika ada
 					if len(e.Key) > 0 {
 						fields["key"] = string(e.Key)
 					}
 
-					if e.TopicPartition.Error != nil {
-						log.WithFields(fields).
-							WithError(e.TopicPartition.Error).
-							Error("Kafka delivery failed")
+					if err := e.TopicPartition.Error; err != nil {
+						baseLog.WithFields(fields).
+							WithError(err).
+							Error("kafka delivery failed")
 					} else {
-						log.WithFields(fields).
-							Debug("Kafka message delivered")
+						baseLog.WithFields(fields).
+							Debug("kafka message delivered")
 					}
 
 				case kafka.Error:
-					log.WithField("module", module).
-						WithError(e).
-						Error("Kafka error")
+					baseLog.WithError(e).
+						Error("kafka internal error")
 
 				default:
-					// abaikan event lain
+					// ignore other events
 				}
 			}
 		}

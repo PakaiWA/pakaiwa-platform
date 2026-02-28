@@ -26,7 +26,6 @@ import (
 
 	"github.com/PakaiWA/pakaiwa-platform/messaging/producer"
 	"github.com/PakaiWA/pakaiwa-platform/observability/logging/ctxmeta"
-	logger "github.com/PakaiWA/pakaiwa-platform/observability/logging/logrus"
 	"github.com/sirupsen/logrus"
 )
 
@@ -56,10 +55,15 @@ func NewHttpProducer(rawURL string) (producer.MessageProducer, error) {
 }
 
 func (h *HttpProducer) Send(ctx context.Context, topic string, key []byte, clientJID []byte, value []byte) error {
-	log := ctxmeta.Logger(ctx)
-	if log == nil {
-		base := logger.NewLogger(logrus.InfoLevel)
-		log = logrus.NewEntry(base)
+	var log *logrus.Entry
+	if entry := ctxmeta.LoggerHTTP(ctx); entry != nil {
+		log = entry.WithField("component", "http_webhook")
+	} else {
+		// fallback aman (misalnya saat test)
+		base := logrus.New()
+		log = logrus.NewEntry(base).
+			WithField("scope", "http").
+			WithField("component", "http_webhook")
 	}
 
 	if topic == "" {
