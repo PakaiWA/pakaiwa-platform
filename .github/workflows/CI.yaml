@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go-version: ["1.25.7", "1.26"]
+        go-version: ["1.26.0"]
 
     services:
       postgres:
@@ -97,19 +97,13 @@ jobs:
           REDIS_ADDR: localhost:6379
           APP_ENV: test
         run: |
-          if [ "${{ matrix.go-version }}" = "1.25.7" ]; then
-            echo "Running race detector (latest Go only)..."
-            go test -v -race ./...
+          echo "Running race detector..."
+          go test -v -race ./...
 
-            echo "Running coverage (separate from race)..."
-            go test -v -coverprofile=coverage.out -covermode=atomic ./...
-          else
-            echo "Running standard tests..."
-            go test -v ./...
-          fi
+          echo "Running coverage (separate from race)..."
+          go test -v -coverprofile=coverage.out -covermode=atomic ./...
 
       - name: Upload results to Codecov
-        if: matrix.go-version == '1.25.7'
         uses: codecov/codecov-action@v5
         with:
           files: ./coverage.out
@@ -121,8 +115,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go-version: ["1.26.0", "1.25.7"]
-    name: Build ${{ matrix.go-version == '1.26.0' && '(latest)' || '1.25.7' }}
+        go-version: ["1.26.0"]
+    name: Build (Go ${{ matrix.go-version }})
 
     steps:
       - uses: actions/checkout@v4

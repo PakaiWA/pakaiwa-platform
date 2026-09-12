@@ -17,7 +17,7 @@ A robust Go platform for PakaiWA with PostgreSQL database support and comprehens
 
 ## Requirements
 
-- Go 1.23 or higher (tested with 1.23, 1.24, 1.25)
+- Go 1.26 or higher (tested with Go 1.26+)
 - PostgreSQL 12+ (for integration tests)
 
 ## Installation
@@ -181,7 +181,7 @@ Tests include:
 
 The project uses GitHub Actions for continuous integration:
 
-- ✅ **Multi-version testing**: Tests run on Go 1.23, 1.24, and 1.25
+- ✅ **Modern runtime**: Tests run on Go 1.26.0+ with strict local toolchain
 - ✅ **PostgreSQL service**: Integration tests with PostgreSQL 16
 - ✅ **Code coverage**: Automatic coverage reporting to Codecov
 - ✅ **Linting**: golangci-lint with comprehensive rules
