@@ -21,6 +21,7 @@ import (
 )
 
 func TestHash_Success(t *testing.T) {
+	t.Parallel()
 	plainPassword := "mySecurePassword123"
 
 	hashed, err := Hash(plainPassword)
@@ -43,6 +44,7 @@ func TestHash_Success(t *testing.T) {
 }
 
 func TestHash_DifferentHashesForSamePassword(t *testing.T) {
+	t.Parallel()
 	plainPassword := "mySecurePassword123"
 
 	hash1, err1 := Hash(plainPassword)
@@ -62,6 +64,7 @@ func TestHash_DifferentHashesForSamePassword(t *testing.T) {
 }
 
 func TestHash_EmptyPassword(t *testing.T) {
+	t.Parallel()
 	hashed, err := Hash("")
 	if err != nil {
 		t.Fatalf("Expected no error for empty password, got %v", err)
@@ -73,6 +76,7 @@ func TestHash_EmptyPassword(t *testing.T) {
 }
 
 func TestHash_LongPassword(t *testing.T) {
+	t.Parallel()
 	// Bcrypt has a maximum password length of 72 bytes
 	// Passwords within 72 bytes should work fine
 	password72 := strings.Repeat("a", 72)
@@ -102,6 +106,7 @@ func TestHash_LongPassword(t *testing.T) {
 }
 
 func TestCompare_Success(t *testing.T) {
+	t.Parallel()
 	plainPassword := "mySecurePassword123"
 
 	hashed, err := Hash(plainPassword)
@@ -116,6 +121,7 @@ func TestCompare_Success(t *testing.T) {
 }
 
 func TestCompare_WrongPassword(t *testing.T) {
+	t.Parallel()
 	plainPassword := "mySecurePassword123"
 	wrongPassword := "wrongPassword456"
 
@@ -131,6 +137,7 @@ func TestCompare_WrongPassword(t *testing.T) {
 }
 
 func TestCompare_EmptyPassword(t *testing.T) {
+	t.Parallel()
 	plainPassword := "mySecurePassword123"
 
 	hashed, err := Hash(plainPassword)
@@ -145,6 +152,7 @@ func TestCompare_EmptyPassword(t *testing.T) {
 }
 
 func TestCompare_InvalidHash(t *testing.T) {
+	t.Parallel()
 	result := Compare("invalid-hash", "password")
 	if result {
 		t.Error("Expected Compare to return false for invalid hash")
@@ -152,6 +160,7 @@ func TestCompare_InvalidHash(t *testing.T) {
 }
 
 func TestCompare_EmptyHash(t *testing.T) {
+	t.Parallel()
 	result := Compare("", "password")
 	if result {
 		t.Error("Expected Compare to return false for empty hash")
@@ -159,6 +168,7 @@ func TestCompare_EmptyHash(t *testing.T) {
 }
 
 func TestCompare_CaseSensitive(t *testing.T) {
+	t.Parallel()
 	plainPassword := "MyPassword123"
 
 	hashed, err := Hash(plainPassword)
@@ -180,6 +190,7 @@ func TestCompare_CaseSensitive(t *testing.T) {
 }
 
 func TestHashAndCompare_MultiplePasswords(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		password string
@@ -193,7 +204,9 @@ func TestHashAndCompare_MultiplePasswords(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			hashed, err := Hash(tt.password)
 			if err != nil {
 				t.Fatalf("Failed to hash password: %v", err)
@@ -211,6 +224,7 @@ func TestHashAndCompare_MultiplePasswords(t *testing.T) {
 }
 
 func TestHash_Consistency(t *testing.T) {
+	t.Parallel()
 	plainPassword := "testPassword123"
 
 	hashed, err := Hash(plainPassword)
