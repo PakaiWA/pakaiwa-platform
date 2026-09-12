@@ -37,7 +37,11 @@ func mustNewHttpProducer(t *testing.T, rawURL string) *HttpProducer {
 	if err != nil {
 		t.Fatalf("NewHttpProducer(%q) unexpected error: %v", rawURL, err)
 	}
-	return p.(*HttpProducer)
+	hp, ok := p.(*HttpProducer)
+	if !ok {
+		t.Fatalf("expected *HttpProducer, got %T", p)
+	}
+	return hp
 }
 
 // ---- NewHttpProducer validation ----

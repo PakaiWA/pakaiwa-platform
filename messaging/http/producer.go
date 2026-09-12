@@ -101,8 +101,8 @@ func (h *HttpProducer) Send(ctx context.Context, topic string, key []byte, clien
 		return err
 	}
 	defer func() {
-		_, _ = io.Copy(io.Discard, resp.Body) // drain body for connection reuse
-		_ = resp.Body.Close()
+		_, _ = io.Copy(io.Discard, resp.Body) //nolint:errcheck // drain body for connection reuse
+		_ = resp.Body.Close()                 //nolint:errcheck
 	}()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
