@@ -261,16 +261,16 @@ func TestFormat_AllLevels(t *testing.T) {
 	}
 
 	cases := []struct {
-		level    logrus.Level
 		expected string
+		level    logrus.Level
 	}{
-		{logrus.WarnLevel, "warn"},
-		{logrus.ErrorLevel, "error"},
-		{logrus.InfoLevel, "info"},
-		{logrus.DebugLevel, "debug"},
-		{logrus.TraceLevel, "trace"},
-		{logrus.FatalLevel, "fatal"},
-		{logrus.PanicLevel, "panic"},
+		{"warn", logrus.WarnLevel},
+		{"error", logrus.ErrorLevel},
+		{"info", logrus.InfoLevel},
+		{"debug", logrus.DebugLevel},
+		{"trace", logrus.TraceLevel},
+		{"fatal", logrus.FatalLevel},
+		{"panic", logrus.PanicLevel},
 	}
 
 	for _, tc := range cases {

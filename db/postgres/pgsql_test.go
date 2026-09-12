@@ -286,8 +286,8 @@ func TestNewDatabase_Happy_Integration(t *testing.T) {
 	defer pool.Close()
 
 	// Verify pool is still reachable.
-	if err := pool.Ping(ctx); err != nil {
-		t.Errorf("Ping failed after successful NewDatabase: %v", err)
+	if pingErr := pool.Ping(ctx); pingErr != nil {
+		t.Errorf("Ping failed after successful NewDatabase: %v", pingErr)
 	}
 
 	// Verify MaxConns was applied.
