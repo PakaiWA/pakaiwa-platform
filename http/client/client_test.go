@@ -139,8 +139,8 @@ func TestPost_Success(t *testing.T) {
 
 func TestPut_Success(t *testing.T) {
 	type TestPayload struct {
-		ID   int    `json:"id"`
 		Name string `json:"name"`
+		ID   int    `json:"id"`
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -259,9 +259,9 @@ func TestDoJSON_ComplexPayload(t *testing.T) {
 
 	type User struct {
 		Name    string   `json:"name"`
-		Age     int      `json:"age"`
-		Tags    []string `json:"tags"`
 		Address Address  `json:"address"`
+		Tags    []string `json:"tags"`
+		Age     int      `json:"age"`
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

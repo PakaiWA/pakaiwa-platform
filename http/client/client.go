@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -61,12 +60,9 @@ func doJSON[T any](ctx context.Context, method, url string, body T) (*http.Respo
 
 	// validate JSON
 	var js json.RawMessage
-	if err := json.Unmarshal(b, &js); err != nil {
+	if unmarshalErr := json.Unmarshal(b, &js); unmarshalErr != nil {
 		return nil, errors.New("invalid JSON payload")
 	}
-
-	fmt.Println("Raw bytes: ", b)         // tampil seperti angka
-	fmt.Println("As string: ", string(b)) // {"name":"Vin"}
 
 	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(b))
 	if err != nil {
