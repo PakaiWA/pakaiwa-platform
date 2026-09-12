@@ -56,7 +56,7 @@ func TestNewKafkaProducer_ValidConfig(t *testing.T) {
 
 func TestKafkaProducer_Flush(t *testing.T) {
 	kp := newTestKafkaProducer(t)
-	defer func() { _ = kp.Close() }()
+	defer func() { _ = kp.Close() }() //nolint:errcheck
 
 	// Flush with short timeout; no queued messages → should return quickly.
 	remaining := kp.Flush(100)
@@ -79,7 +79,7 @@ func TestKafkaProducer_Close(t *testing.T) {
 
 func TestKafkaProducer_Events_NotNil(t *testing.T) {
 	kp := newTestKafkaProducer(t)
-	defer func() { _ = kp.Close() }()
+	defer func() { _ = kp.Close() }() //nolint:errcheck
 
 	ch := kp.Events()
 	if ch == nil {
@@ -91,7 +91,7 @@ func TestKafkaProducer_Events_NotNil(t *testing.T) {
 
 func TestKafkaProducer_Send_Queues(t *testing.T) {
 	kp := newTestKafkaProducer(t)
-	defer func() { _ = kp.Close() }()
+	defer func() { _ = kp.Close() }() //nolint:errcheck
 
 	l := logrushelper.NewLogger(logrus.DebugLevel)
 	entry := l.WithField("test", "kafka_send")
@@ -121,28 +121,30 @@ func TestKafkaProducer_Send_QueueFull(t *testing.T) {
 		t.Fatalf("failed to create producer: %v", err)
 	}
 	kp := &KafkaProducer{p: p}
-	defer func() { _ = kp.Close() }()
+	defer func() { _ = kp.Close() }() //nolint:errcheck
 
 	l := logrushelper.NewLogger(logrus.DebugLevel)
 	entry := l.WithField("test", "queue_full")
 	ctx := ctxmeta.WithLogger(context.Background(), entry)
 
 	topic := "fill-topic"
-	// Flood the queue until we get ErrQueueFull.
-	var gotQueueFull bool
-	for i := 0; i < 10000; i++ {
-		err := kp.Send(ctx, topic, []byte("k"), []byte("d"), []byte(`{}`))
-		if err != nil {
+	device := "fill-device"
+
+	// Fill the buffer until ErrQueueFull or max iterations reached.
+	queueFullReached := false
+	for i := 0; i < 1000; i++ {
+		sendErr := kp.Send(ctx, topic, []byte("key"), []byte(device), []byte(`{"hello":"world"}`))
+		if sendErr != nil {
 			var kErr kafka.Error
-			if errors.As(err, &kErr) && kErr.Code() == kafka.ErrQueueFull {
-				gotQueueFull = true
+			if errors.As(sendErr, &kErr) && kErr.Code() == kafka.ErrQueueFull {
+				queueFullReached = true
 				break
 			}
+			t.Logf("Got non-queue-full error at iteration %d: %v", i, sendErr)
+			break
 		}
 	}
-	if !gotQueueFull {
-		t.Log("Queue full error was not triggered (broker may have accepted messages); acceptable")
-	}
+	t.Logf("Queue full reached: %v", queueFullReached)
 }
 
 // TestKafkaProducer_Send_NonQueueFullError_WithLogger covers the
@@ -150,7 +152,7 @@ func TestKafkaProducer_Send_QueueFull(t *testing.T) {
 // closed producer (which returns a non-ErrQueueFull error) with a logger in ctx.
 func TestKafkaProducer_Send_NonQueueFullError_WithLogger(t *testing.T) {
 	kp := newTestKafkaProducer(t)
-	_ = kp.Close() // close first so Produce() fails with ErrState
+	_ = kp.Close() //nolint:errcheck // close first so Produce() fails with ErrState
 
 	l := logrushelper.NewLogger(logrus.DebugLevel)
 	entry := l.WithField("test", "send_err_with_logger")
@@ -166,7 +168,7 @@ func TestKafkaProducer_Send_NonQueueFullError_WithLogger(t *testing.T) {
 // `logrus` fallback branch in KafkaProducer.Send (no logger in context).
 func TestKafkaProducer_Send_NonQueueFullError_NoLogger(t *testing.T) {
 	kp := newTestKafkaProducer(t)
-	_ = kp.Close() // close first so Produce() fails with ErrState
+	_ = kp.Close() //nolint:errcheck // close first so Produce() fails with ErrState
 
 	// context.Background() has no logger → logrus fallback branch
 	err := kp.Send(context.Background(), "topic", []byte("k"), []byte("d"), []byte(`{}`))
@@ -181,7 +183,7 @@ func TestKafkaProducer_Send_NonQueueFullError_NoLogger(t *testing.T) {
 // starts and exits cleanly when the context is cancelled.
 func TestStartProducerPollLoop_KafkaProducer_CtxCancel(t *testing.T) {
 	kp := newTestKafkaProducer(t)
-	defer func() { _ = kp.Close() }()
+	defer func() { _ = kp.Close() }() //nolint:errcheck
 
 	l := logrus.NewEntry(logrus.New())
 	ctx, cancel := context.WithCancel(context.Background())

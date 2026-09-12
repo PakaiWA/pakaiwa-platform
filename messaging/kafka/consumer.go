@@ -22,9 +22,9 @@ import (
 )
 
 type ConsumerConfig struct {
-	Brokers []string
 	GroupID string
 	Options map[string]any
+	Brokers []string
 }
 
 func NewKafkaConsumer(cfg ConsumerConfig) (*kafka.Consumer, error) {

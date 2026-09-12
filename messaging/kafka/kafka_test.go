@@ -61,11 +61,11 @@ func TestSafeTopic_EmptyString(t *testing.T) {
 
 type mockProducer struct {
 	sendErr    error
-	sendCalled bool
 	lastTopic  string
 	lastKey    []byte
 	lastJID    []byte
 	lastValue  []byte
+	sendCalled bool
 }
 
 func (m *mockProducer) Send(_ context.Context, topic string, key []byte, clientJID []byte, value []byte) error {
