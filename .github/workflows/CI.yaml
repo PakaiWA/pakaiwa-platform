@@ -44,11 +44,7 @@ jobs:
         env:
           APP_ENV: test
         run: |
-          echo "Running race detector..."
-          go test -v -race ./...
-
-          echo "Running coverage (separate from race)..."
-          go test -v -coverprofile=coverage.out -covermode=atomic ./...
+          go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
 
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v7.0.0
