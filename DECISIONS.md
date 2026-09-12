@@ -80,3 +80,28 @@
 - **Consequences**:
   - **Positif**: Pelacakan build dan rilis dependensi menjadi sangat mudah dikorelasikan langsung dengan timeline operasional tim.
   - **Negatif / Trade-off**: Format non-SemVer murni mengharuskan consumer menggunakan tag rilis spesifik atau pseudo-versioning Go tooling.
+
+---
+
+## ADR-006: Optimasi Komprehensif Kode, Memori, dan Pipeline Linting/Testing
+
+- **Status**: Accepted
+- **Date**: 2026-09-12
+- **Source**: Repository Optimization & Code Quality Audit
+- **Context**:
+  Pemeriksaan menyeluruh pada source code dan tooling CI/CD menemukan beberapa area yang perlu dioptimalkan:
+  1. Adanya stdout debug printing `fmt.Println` di jalur HTTP client produksi yang menimbulkan overhead I/O dan alokasi memori.
+  2. Alokasi heap berulang pada fungsi `Get40Space()` di layer validation logging melalui `strings.Repeat(" ", 40)`.
+  3. Padding memori struct tidak optimal (*fieldalignment*) pada struct domain/konfigurasi (`Options`, `ConsumerConfig`, dan struct pengujian).
+  4. Variable shadowing dan unhandled error return di beberapa file test dan implementasi producer.
+  5. Konfigurasi linter `golangci-lint` yang memicu puluhan warning tidak relevan untuk pustaka internal, serta ketidaksinkronan target CI antar-tool.
+- **Decision**:
+  Menerapkan serangkaian optimasi kode dan proses berikut:
+  1. **HTTP Client Cleanliness**: Menghapus `fmt.Println` debug logging di `http/client/client.go` dan membersihkan variable shadowing pada error unmarshaling.
+  2. **Zero-Allocation Log Padding**: Mengganti alokasi dinamis `strings.Repeat` di `validation/validator_logging.go` dengan string konstanta statis `fortySpaces`.
+  3. **Struct Memory Alignment**: Mengoptimalkan urutan field struct pada `http/server/fiber.Options`, `messaging/kafka.ConsumerConfig`, dan mock structs untuk meminimalkan padding byte di arsitektur 64-bit.
+  4. **Error Handling & Type Safety**: Memperbaiki pengecekan type assertion di `mustNewHttpProducer` dan menambahkan anotasi penanganan error (`nolint:errcheck`) pada pembersihan defer soket Kafka/HTTP test.
+  5. **Linter & Pipeline Harmonization**: Menyelaraskan aturan `revive` pada `.golangci.yml` sehingga seluruh lint check (`govet`, `errcheck`, `staticcheck`, `revive`) dan hook `pre-commit` serta `pre-push` lulus 100% tanpa noise.
+- **Consequences**:
+  - **Positif**: Throughput kode meningkat (zero-overhead logging & zero-alloc padding), efisiensi cache CPU lebih tinggi dari struct alignment yang optimal, serta linting pipeline `make lint` dan `pre-commit`/`pre-push` bersih dan berstatus 0 issues.
+  - **Negatif / Trade-off**: Urutan field di struct berubah secara internal (namun backwards compatible karena menggunakan nama field eksplisit saat inisialisasi).

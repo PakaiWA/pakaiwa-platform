@@ -8,7 +8,7 @@
 ## 1. Immediate Tasks
 _Tugas atau perbaikan yang berkaitan langsung dengan keandalan operasional atau pengujian._
 
-- [ ] [`http/client/client.go:68-69`](file:///Users/i/work/PakaiWA/pakaiwa-platform/http/client/client.go#L68-L69): Hapus atau ganti `fmt.Println` debug logging (`Raw bytes:` dan `As string:`) dengan structured logger (`ctxmeta.LoggerHTTP(ctx)`).
+- [x] [`http/client/client.go:68-69`](file:///Users/i/work/PakaiWA/pakaiwa-platform/http/client/client.go#L68-L69): Hapus debug logging `fmt.Println` (`Raw bytes:` dan `As string:`) serta hilangkan variable shadowing pada unmarshal check.
 - [ ] [`messaging/kafka/producer.go:37`](file:///Users/i/work/PakaiWA/pakaiwa-platform/messaging/kafka/producer.go#L37): Pada `NewKafkaProducer`, saat error fungsi mengembalikan `nil` tanpa nilai error. Pertimbangkan refactor signature menjadi `(producer.MessageProducer, error)` agar caller dapat mendeteksi kegagalan bootstrap Kafka broker secara idiomatik.
 
 ---
