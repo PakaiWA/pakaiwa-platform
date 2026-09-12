@@ -19,7 +19,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/PakaiWA/pakaiwa-platform/observability/logging/ctxmeta"
 	"github.com/go-playground/validator/v10"
@@ -68,6 +67,8 @@ func TraceIDFromContext(ctx context.Context) string {
 	return Get40Space()
 }
 
+const fortySpaces = "                                        "
+
 func Get40Space() string {
-	return strings.Repeat(" ", 40)
+	return fortySpaces
 }

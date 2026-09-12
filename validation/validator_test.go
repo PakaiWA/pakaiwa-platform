@@ -165,10 +165,10 @@ func TestValidator_ComplexValidation(t *testing.T) {
 	}
 
 	type User struct {
+		Address Address `json:"address" validate:"required"`
 		Name    string  `json:"name" validate:"required"`
 		Email   string  `json:"email" validate:"required,email"`
 		Age     int     `json:"age" validate:"gte=18,lte=100"`
-		Address Address `json:"address" validate:"required"`
 	}
 
 	validator := NewValidator()
