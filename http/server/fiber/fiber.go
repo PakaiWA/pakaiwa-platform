@@ -18,12 +18,12 @@ package httpserver
 import "github.com/gofiber/fiber/v3"
 
 type Options struct {
-	AppName      string
-	ErrorHandler fiber.ErrorHandler
+	ErrorHandler   fiber.ErrorHandler
+	AppName        string
+	TrustedProxies []string
 
 	TrustProxy         bool
 	EnableIPValidation bool
-	TrustedProxies     []string
 }
 
 func NewFiber(opts Options) *fiber.App {
